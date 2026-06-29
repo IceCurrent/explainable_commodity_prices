@@ -112,6 +112,97 @@ def canonical_correlations(factors: pd.DataFrame, macro: pd.DataFrame) -> np.nda
     return np.clip(s, 0.0, 1.0)
 
 
+def _rbf_gram(X: np.ndarray, gamma: float) -> np.ndarray:
+    """RBF (Gaussian) Gram matrix K_ij = exp(-gamma * ||x_i - x_j||^2)."""
+    sq = np.einsum("ij,ij->i", X, X)
+    d2 = sq[:, None] + sq[None, :] - 2.0 * (X @ X.T)
+    np.maximum(d2, 0.0, out=d2)
+    return np.exp(-gamma * d2)
+
+
+def _median_gamma(X: np.ndarray) -> float:
+    """Median heuristic for the RBF bandwidth: gamma = 1 / median(pairwise sq dist)."""
+    sq = np.einsum("ij,ij->i", X, X)
+    d2 = sq[:, None] + sq[None, :] - 2.0 * (X @ X.T)
+    iu = np.triu_indices_from(d2, k=1)
+    med = float(np.median(np.maximum(d2[iu], 0.0)))
+    return 1.0 / med if med > 0 else 1.0
+
+
+def _center_gram(K: np.ndarray) -> np.ndarray:
+    """Double-centering H K H with H = I - 11'/n, done cheaply and symmetrized."""
+    rm = K.mean(axis=0, keepdims=True)
+    Kc = K - rm - rm.T + K.mean()
+    return 0.5 * (Kc + Kc.T)
+
+
+def kernel_canonical_correlations(
+    factors: pd.DataFrame,
+    macro: pd.DataFrame,
+    reg: float = 1.0,
+    top_k: int | None = None,
+    gamma_f: float | None = None,
+    gamma_m: float | None = None,
+    eig_tol: float = 1e-10,
+) -> np.ndarray:
+    """Regularized Kernel CCA between the factor space and the macro space.
+
+    The nonlinear analogue of :func:`canonical_correlations`. Each view is lifted
+    into an RBF reproducing-kernel Hilbert space and *linear* CCA is solved there
+    (Lai & Fyfe 2000; Bach & Jordan 2002; Hardoon et al. 2004), so the resulting
+    canonical correlations measure dependence achievable by arbitrary smooth
+    nonlinear transforms of f and of the macro panel -- a finite-sample,
+    capacity-controlled estimate of the Hirschfeld-Gebelein-Renyi maximal
+    correlation between the two spaces.
+
+    Derivation (so the n-by-n eigenproblem is the only heavy step). With centered
+    feature maps Phi_a, Phi_b and Gram matrices K_a = Phi_a Phi_a', K_b likewise,
+    write the eigendecomposition K = U diag(lambda) U'. Regularized linear CCA in
+    feature space (covariance ridged by kappa) has canonical correlations equal to
+    the singular values of
+
+        D_a (U_a' U_b) D_b,   D = diag( sqrt(lambda / (lambda + kappa)) ),
+
+    with kappa = ``reg`` * mean(lambda) set per view. ``reg`` is the crux: without
+    it the high-frequency kernel directions drive every canonical correlation to 1
+    (the well-known KCCA degeneracy); the ridge shrinks those tail directions to 0
+    so only genuinely shared structure survives.
+
+    Returns the canonical correlations in [0, 1], descending. ``top_k`` keeps the
+    leading ``top_k`` (default: number of macro columns) so the output is directly
+    comparable to the linear :func:`canonical_correlations`, which has exactly
+    min(K, J) values; the kernel version otherwise returns up to n mostly-spurious
+    tail directions whose minimum is uninformative.
+    """
+    f, m = _align_xy(factors, macro)
+    F = f.to_numpy(dtype=float)
+    M = m.to_numpy(dtype=float)
+    # Standardize each view so the RBF bandwidth sees comparable per-feature scale.
+    F = (F - F.mean(0)) / np.where(F.std(0, ddof=0) == 0, 1.0, F.std(0, ddof=0))
+    M = (M - M.mean(0)) / np.where(M.std(0, ddof=0) == 0, 1.0, M.std(0, ddof=0))
+
+    gamma_f = _median_gamma(F) if gamma_f is None else gamma_f
+    gamma_m = _median_gamma(M) if gamma_m is None else gamma_m
+    Kf = _center_gram(_rbf_gram(F, gamma_f))
+    Km = _center_gram(_rbf_gram(M, gamma_m))
+
+    def _whiten(K: np.ndarray):
+        lam, U = np.linalg.eigh(K)
+        keep = lam > eig_tol * float(lam.max())
+        lam, U = lam[keep], U[:, keep]
+        kappa = reg * float(lam.mean())
+        d = np.sqrt(lam / (lam + kappa))           # in (0, 1); ~1 if lam>>kappa, ~0 if lam<<kappa
+        return U, d
+
+    Uf, df = _whiten(Kf)
+    Um, dm = _whiten(Km)
+    inner = (df[:, None] * (Uf.T @ Um)) * dm[None, :]
+    cc = np.linalg.svd(inner, compute_uv=False)
+    cc = np.clip(cc, 0.0, 1.0)
+    k = m.shape[1] if top_k is None else top_k
+    return cc[:k]
+
+
 def bai_ng_spanning_summary(factors: pd.DataFrame, macro: pd.DataFrame) -> dict:
     """Spanning diagnostic in the spirit of Bai & Ng (2006).
 

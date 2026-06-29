@@ -9,14 +9,24 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 class VanillaAutoencoder(nn.Module):
-    """Single-layer bottleneck autoencoder with ReLU activations (paper eq. 2-3)."""
+    """Single-layer bottleneck autoencoder with ReLU activations (paper eq. 2-3).
 
-    def __init__(self, n_assets: int, n_factors: int) -> None:
+    ``activation="linear"`` drops the ReLU, turning the model into a linear
+    autoencoder whose optimum spans the top-K principal subspace (a PCA baseline).
+    This is used by the synthetic AE-explainability study to isolate exactly how
+    much explainability loss is due to the ReLU rectification versus the
+    bottleneck itself. Default stays "relu" so the real pipeline is unchanged.
+    """
+
+    def __init__(self, n_assets: int, n_factors: int, activation: str = "relu") -> None:
         super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Linear(n_assets, n_factors),
-            nn.ReLU(),
-        )
+        if activation not in ("relu", "linear"):
+            raise ValueError(f"activation must be 'relu' or 'linear', got {activation!r}")
+        self.activation = activation
+        enc_layers: list[nn.Module] = [nn.Linear(n_assets, n_factors)]
+        if activation == "relu":
+            enc_layers.append(nn.ReLU())
+        self.encoder = nn.Sequential(*enc_layers)
         self.decoder = nn.Sequential(
             nn.Linear(n_factors, n_assets),
         )
@@ -49,6 +59,7 @@ class AETrainConfig:
     learning_rate: float = 1e-3
     patience: int = 5
     seed: int = 42
+    activation: str = "relu"
 
 
 def train_vanilla_autoencoder(
@@ -79,7 +90,7 @@ def train_vanilla_autoencoder(
 
     n_obs, n_assets = window_returns.shape
     device = torch.device("cpu")
-    model = VanillaAutoencoder(n_assets, config.n_factors).to(device)
+    model = VanillaAutoencoder(n_assets, config.n_factors, activation=config.activation).to(device)
     if init_state is not None:
         model.load_state_dict(init_state)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
