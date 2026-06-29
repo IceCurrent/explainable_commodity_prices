@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
-Clean Bloomberg 22-commodity panel into aligned prices and standardized log-returns.
+Clean Bloomberg commodity panel into aligned prices and standardized log-returns.
 
 Run from the data/ directory (or anywhere; paths are resolved relative to this file):
     python clean_commodities.py
 
 Outputs (written next to this script):
-    prices.csv        — date-intersection aligned price levels (22 commodities)
+    prices.csv        — date-intersection aligned price levels
     returns.csv       — per-commodity z-scored log-returns (autoencoder input)
     CLEANING_LOG.md   — provenance for every transformation
 """
 
 from __future__ import annotations
 
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -25,46 +26,88 @@ import pandas as pd
 # Paths and workbook configuration
 # ---------------------------------------------------------------------------
 DATA_DIR = Path(__file__).resolve().parent
-RAW_XLSX = DATA_DIR / "raw_data.xlsx"
+RAW_XLSX = DATA_DIR / "Raw_Data_Final_Universe.xlsx"
 PRICES_CSV = DATA_DIR / "prices.csv"
 RETURNS_CSV = DATA_DIR / "returns.csv"
 CLEANING_LOG = DATA_DIR / "CLEANING_LOG.md"
 
-SHEET_TICKERS = "Sheet1"
-SHEET_PRICES = "Sheet3"
-TICKER_CELL_COL = 3  # column D (0-based)
-TICKER_ROW_START = 1  # Excel row 2
-TICKER_COUNT = 22
+SHEET = "Sheet1"
+BLOCK_WIDTH = 3  # date, price, spacer
 EXCEL_DATE_ORIGIN = "1899-12-30"
+HEADER_PATTERN = re.compile(r"^(.+?)\s*\(([^)]+)\)\s*$")
 
-# Pull order: (ticker, readable name, sector)
-COMMODITY_MAP: list[tuple[str, str, str]] = [
-    ("CO1", "Brent", "Energy"),
-    ("CL1", "WTI", "Energy"),
-    ("NG1", "NaturalGas", "Energy"),
-    ("XB1", "Gasoline", "Energy"),
-    ("HO1", "Diesel", "Energy"),
-    ("GC1", "Gold", "Metals"),
-    ("SI1", "Silver", "Metals"),
-    ("HG1", "Copper", "Metals"),
-    ("LA1", "Aluminium", "Metals"),
-    ("LN1", "Nickel", "Metals"),
-    ("LX1", "Zinc", "Metals"),
-    ("KC1", "Coffee", "Agri"),
-    ("C 1", "Corn", "Agri"),
-    ("CT1", "Cotton", "Agri"),
-    ("LH1", "LeanHogs", "Agri"),
-    ("LC1", "LiveCattle", "Agri"),
-    ("SB1", "Sugar", "Agri"),
-    ("S 1", "Soybeans", "Agri"),
-    ("SM1", "SoybeanMeal", "Agri"),
-    ("BO1", "SoybeanOil", "Agri"),
-    ("KW1", "HRWWheat", "Agri"),
-    ("W 1", "Wheat", "Agri"),
-]
+# Canonical CSV column names keyed by Bloomberg ticker (when present in headers).
+TICKER_TO_NAME: dict[str, str] = {
+    "CO1": "Brent",
+    "CL1": "WTI",
+    "NG1": "NaturalGas",
+    "XB1": "Gasoline",
+    "QS1": "Diesel",
+    "HO1": "HeatingOil",
+    "GC1": "Gold",
+    "SI1": "Silver",
+    "HG1": "Copper",
+    "LA1": "Aluminium",
+    "LN1": "Nickel",
+    "LX1": "Zinc",
+    "PL1": "Platinum",
+    "KC1": "Coffee",
+    "C 1": "Corn",
+    "CT1": "Cotton",
+    "LH1": "LeanHogs",
+    "LC1": "LiveCattle",
+    "SB1": "Sugar",
+    "S1": "Soybeans",
+    "BO1": "SoybeanOil",
+    "KC": "HRWWheat",
+    "XW1": "ThermalCoal",
+    "CKCA": "CokingCoal",
+    "ZME1": "Methanol",
+    "BAPA": "Propane",
+}
 
-TICKERS_EXPECTED = [t[0] for t in COMMODITY_MAP]
-NAMES_EXPECTED = [t[1] for t in COMMODITY_MAP]
+# Headers without tickers in parentheses.
+DISPLAY_TO_NAME: dict[str, str] = {
+    "HRC Steel": "HRCSteel",
+    "SGX Iron Ore": "SGXIronOre",
+    "Lithium": "Lithium",
+}
+
+SECTOR_BY_NAME: dict[str, str] = {
+    "Brent": "Energy",
+    "WTI": "Energy",
+    "NaturalGas": "Energy",
+    "Gasoline": "Energy",
+    "Diesel": "Energy",
+    "HeatingOil": "Energy",
+    "ThermalCoal": "Energy",
+    "CokingCoal": "Energy",
+    "Methanol": "Energy",
+    "Propane": "Energy",
+    "Gold": "Metals",
+    "Silver": "Metals",
+    "Copper": "Metals",
+    "Aluminium": "Metals",
+    "Nickel": "Metals",
+    "Zinc": "Metals",
+    "Platinum": "Metals",
+    "HRCSteel": "Metals",
+    "SGXIronOre": "Metals",
+    "Lithium": "Metals",
+    "Coffee": "Agri",
+    "Corn": "Agri",
+    "Cotton": "Agri",
+    "LeanHogs": "Agri",
+    "LiveCattle": "Agri",
+    "Sugar": "Agri",
+    "Soybeans": "Agri",
+    "SoybeanOil": "Agri",
+    "HRWWheat": "Agri",
+}
+
+# Sparse or short-history series parsed from the workbook but omitted from the
+# shared calendar so the aligned panel keeps a usable history length.
+ALIGNMENT_EXCLUSIONS: set[str] = {"CokingCoal", "Propane"}
 
 
 def _md_cell(value: Any) -> str:
@@ -119,8 +162,7 @@ class ProvenanceLog:
             [
                 ["Generated", generated],
                 ["Source workbook", f"`{RAW_XLSX.name}`"],
-                ["Ticker sheet", f"`{SHEET_TICKERS}`"],
-                ["Price sheet", f"`{SHEET_PRICES}`"],
+                ["Sheet", f"`{SHEET}`"],
                 ["Outputs", f"`{PRICES_CSV.name}`, `{RETURNS_CSV.name}`"],
             ],
         )
@@ -148,112 +190,128 @@ def parse_excel_date(value) -> pd.Timestamp | pd.NaT:
     return pd.to_datetime(value, errors="coerce")
 
 
-def read_tickers_from_sheet1() -> list[str]:
-    df = pd.read_excel(RAW_XLSX, sheet_name=SHEET_TICKERS, header=None)
-    tickers: list[str] = []
-    for row in range(TICKER_ROW_START, TICKER_ROW_START + TICKER_COUNT):
-        raw = df.iloc[row, TICKER_CELL_COL]
-        tickers.append(str(raw).strip() if pd.notna(raw) else "")
-    return tickers
+def parse_header_label(raw: Any) -> tuple[str, str]:
+    """Return (display label, ticker) from a Bloomberg header cell."""
+    text = str(raw).strip() if pd.notna(raw) else ""
+    if not text:
+        return "", ""
+    match = HEADER_PATTERN.match(text)
+    if match:
+        return match.group(1).strip(), match.group(2).strip()
+    return text, ""
 
 
-def drop_fully_empty_columns(df: pd.DataFrame) -> pd.DataFrame:
-    keep = [c for c in df.columns if df[c].notna().any()]
-    return df[keep]
+def canonical_name(display: str, ticker: str) -> str:
+    if ticker and ticker in TICKER_TO_NAME:
+        return TICKER_TO_NAME[ticker]
+    if display in DISPLAY_TO_NAME:
+        return DISPLAY_TO_NAME[display]
+    return re.sub(r"[^A-Za-z0-9]+", "", display)
+
+
+def discover_commodity_blocks(header_row: pd.Series) -> list[dict[str, Any]]:
+    """Infer (date, price) column pairs from the header row."""
+    blocks: list[dict[str, Any]] = []
+    for start_col in range(0, len(header_row), BLOCK_WIDTH):
+        price_col = start_col + 1
+        if price_col >= len(header_row):
+            break
+        display, ticker = parse_header_label(header_row.iloc[price_col])
+        if not display:
+            continue
+        name = canonical_name(display, ticker)
+        blocks.append(
+            {
+                "date_col": start_col,
+                "price_col": price_col,
+                "display": display,
+                "ticker": ticker or "—",
+                "name": name,
+                "sector": SECTOR_BY_NAME.get(name, "Other"),
+            }
+        )
+    return blocks
 
 
 def parse_price_blocks(log: ProvenanceLog) -> dict[str, pd.Series]:
-    """Read Sheet3, verify 22 (date, price) blocks, return named price series."""
+    """Read Sheet1 horizontal blocks and return named price series."""
     log.section("Input and block layout")
 
-    raw = pd.read_excel(RAW_XLSX, sheet_name=SHEET_PRICES, header=None)
+    raw = pd.read_excel(RAW_XLSX, sheet_name=SHEET, header=None)
     log.table(
         ["Metric", "Value"],
         [
-            ["Sheet", SHEET_PRICES],
+            ["Sheet", SHEET],
             ["Raw shape (rows × cols)", f"{raw.shape[0]} × {raw.shape[1]}"],
         ],
     )
 
-    trimmed = drop_fully_empty_columns(raw)
-    n_cols = trimmed.shape[1]
-    col_indices = list(trimmed.columns)
-    log.paragraph(
-        f"After dropping fully-empty columns: **{n_cols}** columns remain "
-        f"(0-based indices: `{col_indices}`)."
-    )
-
-    if n_cols != TICKER_COUNT * 2:
-        log.paragraph(
-            f"**FATAL:** Expected **{TICKER_COUNT * 2}** non-empty columns "
-            f"({TICKER_COUNT} date/price pairs), found **{n_cols}**. "
-            "Cannot reconcile block layout with ticker list; stopping."
-        )
+    header_row = raw.iloc[0]
+    blocks = discover_commodity_blocks(header_row)
+    if not blocks:
+        log.paragraph("**FATAL:** No commodity blocks found in header row; stopping.")
         log.write(CLEANING_LOG)
         sys.exit(1)
 
     log.paragraph(
-        f"Column count reconciles: **{TICKER_COUNT}** `(date, price)` pairs "
-        f"↔ **{TICKER_COUNT}** tickers."
+        f"Detected **{len(blocks)}** `(date, price)` blocks from the header row "
+        f"(stride = `{BLOCK_WIDTH}` columns)."
+    )
+    log.table(
+        ["#", "Name", "Ticker", "Sector", "Date col", "Price col", "Header"],
+        [
+            [
+                i + 1,
+                block["name"],
+                block["ticker"],
+                block["sector"],
+                block["date_col"],
+                block["price_col"],
+                f"{block['display']} ({block['ticker']})"
+                if block["ticker"] != "—"
+                else block["display"],
+            ]
+            for i, block in enumerate(blocks)
+        ],
     )
 
-    sheet_tickers = read_tickers_from_sheet1()
-    log.section("Ticker reconciliation", level=3)
-    log.paragraph(
-        f"Tickers read from `{SHEET_TICKERS}` cells "
-        f"`D{TICKER_ROW_START + 1}:D{TICKER_ROW_START + TICKER_COUNT}`:"
-    )
-    log.code(", ".join(sheet_tickers))
-
-    if len(sheet_tickers) != TICKER_COUNT:
-        log.paragraph(
-            f"**FATAL:** Expected **{TICKER_COUNT}** tickers, got **{len(sheet_tickers)}**."
-        )
-        log.write(CLEANING_LOG)
-        sys.exit(1)
-
-    if sheet_tickers != TICKERS_EXPECTED:
-        log.paragraph("**Warning:** Sheet1 ticker order does not match `COMMODITY_MAP`.")
-        mismatch_rows = [
-            [i + 1, got, exp]
-            for i, (got, exp) in enumerate(zip(sheet_tickers, TICKERS_EXPECTED))
-            if got != exp
-        ]
-        log.table(["Position", "Sheet ticker", "Expected"], mismatch_rows)
-    else:
-        log.paragraph("Sheet1 tickers match `COMMODITY_MAP` order exactly.")
-
+    data = raw.iloc[1:].reset_index(drop=True)
     series_by_name: dict[str, pd.Series] = {}
-    col_list = list(trimmed.columns)
     parse_rows: list[list[Any]] = []
 
     log.section("Per-commodity parse summary", level=3)
-    for i, (ticker, name, sector) in enumerate(COMMODITY_MAP):
-        date_col = col_list[2 * i]
-        price_col = col_list[2 * i + 1]
-        block = trimmed[[date_col, price_col]].copy()
-        block.columns = ["date", "price"]
+    for i, block in enumerate(blocks):
+        name = block["name"]
+        if name in series_by_name:
+            log.paragraph(
+                f"**FATAL:** Duplicate canonical name `{name}` at block {i + 1} "
+                f"(ticker `{block['ticker']}`)."
+            )
+            log.write(CLEANING_LOG)
+            sys.exit(1)
 
-        block["date"] = block["date"].map(parse_excel_date)
-        block["price"] = pd.to_numeric(block["price"], errors="coerce")
-        block = block.dropna(subset=["date"])
-        n_before_dedup = len(block)
-        block = block.drop_duplicates(subset=["date"], keep="last")
-        n_dupes = n_before_dedup - len(block)
-        block = block.sort_values("date")
-        block = block.set_index("date")["price"]
-        block.name = name
+        frame = data[[block["date_col"], block["price_col"]]].copy()
+        frame.columns = ["date", "price"]
+        frame["date"] = frame["date"].map(parse_excel_date)
+        frame["price"] = pd.to_numeric(frame["price"], errors="coerce")
+        frame = frame.dropna(subset=["date", "price"])
+        n_before_dedup = len(frame)
+        frame = frame.drop_duplicates(subset=["date"], keep="last")
+        n_dupes = n_before_dedup - len(frame)
+        frame = frame.sort_values("date")
+        series = frame.set_index("date")["price"]
+        series.name = name
+        series_by_name[name] = series
 
-        series_by_name[name] = block
-        dmin, dmax = block.index.min(), block.index.max()
+        dmin, dmax = series.index.min(), series.index.max()
         notes = f"deduped {n_dupes} date(s)" if n_dupes else "—"
         parse_rows.append(
             [
                 i + 1,
                 name,
-                ticker,
-                sector,
-                len(block),
+                block["ticker"],
+                block["sector"],
+                len(series),
                 dmin.date(),
                 dmax.date(),
                 notes,
@@ -277,7 +335,25 @@ def align_on_master_calendar(
         "has a non-missing price (complete-case intersection)."
     )
 
-    prices = pd.DataFrame(series_by_name)
+    excluded = sorted(name for name in series_by_name if name in ALIGNMENT_EXCLUSIONS)
+    included = {
+        name: series
+        for name, series in series_by_name.items()
+        if name not in ALIGNMENT_EXCLUSIONS
+    }
+    if excluded:
+        log.paragraph(
+            "The following parsed series are **excluded from alignment** because "
+            "their sparse or short calendars would collapse the shared panel: "
+            + ", ".join(f"`{name}`" for name in excluded)
+            + "."
+        )
+    if not included:
+        log.paragraph("**FATAL:** No series remain for calendar alignment.")
+        log.write(CLEANING_LOG)
+        sys.exit(1)
+
+    prices = pd.DataFrame(included)
     n_outer = len(prices)
     complete = prices.dropna(how="any")
     n_complete = len(complete)
@@ -332,6 +408,11 @@ def compute_log_returns(prices: pd.DataFrame, log: ProvenanceLog) -> pd.DataFram
 
     log_rets = np.log(prices / prices.shift(1))
     n_before = len(log_rets)
+
+    if n_before == 0:
+        log.paragraph("**FATAL:** Price panel is empty after alignment; cannot compute returns.")
+        log.write(CLEANING_LOG)
+        sys.exit(1)
 
     first_date = log_rets.index[0]
     drop_rows: list[list[Any]] = [

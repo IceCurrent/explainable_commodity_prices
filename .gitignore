@@ -73,3 +73,10 @@ mlruns/
 # Logs
 *.log
 logs/
+
+# Large factor artifacts (regenerate via scripts/extract_factors.py)
+results/factor_bundle*.npz
+*.npz
+
+# Macro panel inputs (user-provided; may be large / licensed)
+data/macro/
