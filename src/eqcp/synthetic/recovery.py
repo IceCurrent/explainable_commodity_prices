@@ -32,13 +32,10 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from src.autoencoder import AETrainConfig, train_vanilla_autoencoder
-from src.macro_mapping import (
-    canonical_correlations,
-    kernel_canonical_correlations,
-    nonlinear_macro_mapping,
-    spanning_regression,
-)
+from eqcp.cca.kernel import kernel_canonical_correlations
+from eqcp.cca.linear import canonical_correlations
+from eqcp.factors.autoencoder import AETrainConfig, train_vanilla_autoencoder
+from eqcp.spanning.regression import nonlinear_macro_mapping, spanning_regression
 
 
 # --------------------------------------------------------------------------- #
@@ -49,20 +46,20 @@ class SyntheticConfig:
     """Knobs for the synthetic DGP. Defaults give a clean linear rank-3 base."""
 
     n_obs: int = 1500
-    n_inputs: int = 12          # observed series fed to the AE (the "commodities")
-    true_rank: int = 3          # number of independent latent drivers g
-    snr: float = 4.0            # signal variance / noise variance
-    relation: str = "linear"    # "linear" | "interaction" | "tanh"
-    ar1: float = 0.95           # persistence of each latent factor (macro-like)
+    n_inputs: int = 12  # observed series fed to the AE (the "commodities")
+    true_rank: int = 3  # number of independent latent drivers g
+    snr: float = 4.0  # signal variance / noise variance
+    relation: str = "linear"  # "linear" | "interaction" | "tanh"
+    ar1: float = 0.95  # persistence of each latent factor (macro-like)
     seed: int = 0
 
 
 @dataclass
 class SyntheticData:
-    x: np.ndarray               # (T, n_inputs) observed inputs (pre-z-score)
-    g: pd.DataFrame             # (T, true_rank) true latent factors -> the "macro"
-    loadings: np.ndarray        # (n_inputs, r_eff) B; columns span the signal space
-    driver: np.ndarray          # (T, r_eff) D such that signal = D @ B.T
+    x: np.ndarray  # (T, n_inputs) observed inputs (pre-z-score)
+    g: pd.DataFrame  # (T, true_rank) true latent factors -> the "macro"
+    loadings: np.ndarray  # (n_inputs, r_eff) B; columns span the signal space
+    driver: np.ndarray  # (T, r_eff) D such that signal = D @ B.T
     index: pd.DatetimeIndex
 
 
@@ -113,7 +110,7 @@ def make_synthetic(cfg: SyntheticConfig) -> SyntheticData:
     x = signal + noise
 
     index = pd.bdate_range("2014-01-01", periods=cfg.n_obs)
-    g_df = pd.DataFrame(g, index=index, columns=[f"g{i+1}" for i in range(r)])
+    g_df = pd.DataFrame(g, index=index, columns=[f"g{i + 1}" for i in range(r)])
     return SyntheticData(x=x, g=g_df, loadings=loadings, driver=driver, index=index)
 
 
@@ -140,10 +137,10 @@ def _encode_ae(xz: np.ndarray, n_factors: int, activation: str, seed: int):
 def _encode_pca(xz: np.ndarray, n_factors: int):
     """Top-K PCA: the linear interpretability baseline."""
     u, s, vt = np.linalg.svd(xz, full_matrices=False)
-    comps = vt[:n_factors]                      # (K, n)
-    factors = xz @ comps.T                       # (T, K)
-    recon = factors @ comps                      # back-projection
-    return factors, recon, comps.T               # decoder_W analogue (n, K)
+    comps = vt[:n_factors]  # (K, n)
+    factors = xz @ comps.T  # (T, K)
+    recon = factors @ comps  # back-projection
+    return factors, recon, comps.T  # decoder_W analogue (n, K)
 
 
 # --------------------------------------------------------------------------- #
@@ -176,15 +173,15 @@ class RecoveryResult:
     true_rank: int
     snr: float
     recon_r2: float
-    span_mean_r2: float          # E1: mean per-factor R^2(g -> f_k)  [coordinate level]
+    span_mean_r2: float  # E1: mean per-factor R^2(g -> f_k)  [coordinate level]
     span_max_r2: float
-    canon_min: float             # E1 Bai-Ng: min canonical corr(f, g) [space level]
+    canon_min: float  # E1 Bai-Ng: min canonical corr(f, g) [space level]
     canon_mean: float
-    kcca_min: float              # E2 kernel-CCA: min nonlinear canonical corr(f, g) [space level]
+    kcca_min: float  # E2 kernel-CCA: min nonlinear canonical corr(f, g) [space level]
     kcca_mean: float
-    subspace_min: float          # decoder span vs true loading span (linear only; else NaN)
-    n_active: int                # latents with non-negligible variance (ReLU dead-unit check)
-    nonlin_premium: float        # E2: mean (R2_nonlin - R2_lin); NaN if E2 skipped
+    subspace_min: float  # decoder span vs true loading span (linear only; else NaN)
+    n_active: int  # latents with non-negligible variance (ReLU dead-unit check)
+    nonlin_premium: float  # E2: mean (R2_nonlin - R2_lin); NaN if E2 skipped
     extra: dict = field(default_factory=dict)
 
 
@@ -209,8 +206,7 @@ def run_recovery(
     else:
         raise ValueError(f"unknown encoder {encoder!r}")
 
-    f_df = pd.DataFrame(factors, index=data.index,
-                        columns=[f"f{i+1}" for i in range(n_factors)])
+    f_df = pd.DataFrame(factors, index=data.index, columns=[f"f{i + 1}" for i in range(n_factors)])
 
     # Drop dead/constant latents before the regressions (ReLU can kill units).
     active_mask = f_df.std(ddof=0).to_numpy() > 1e-8

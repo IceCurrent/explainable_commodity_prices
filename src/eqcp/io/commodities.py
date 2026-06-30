@@ -1,3 +1,5 @@
+"""Commodity return panel loaders."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,8 +8,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data"
+COMMODITIES_DIR = DATA_DIR / "commodities"
 
 
 @dataclass(frozen=True)
@@ -15,7 +18,7 @@ class ReturnPanel:
     dates: pd.DatetimeIndex
     commodities: list[str]
     raw: np.ndarray  # (T, N) log-returns
-    standardized: np.ndarray  # (T, N) window-style z-scores (full sample here)
+    standardized: np.ndarray  # (T, N) full-sample z-scores
 
     @property
     def n_obs(self) -> int:
@@ -27,9 +30,12 @@ class ReturnPanel:
 
 
 def load_return_panel(data_dir: Path | None = None) -> ReturnPanel:
-    """Load aligned commodity log-returns from prices.csv."""
-    data_dir = data_dir or DATA_DIR
-    prices = pd.read_csv(data_dir / "prices.csv", parse_dates=["date"], index_col="date")
+    """Load aligned commodity log-returns from ``data/commodities/prices.csv``."""
+    data_dir = data_dir or COMMODITIES_DIR
+    prices_path = data_dir / "prices.csv"
+    if not prices_path.exists():
+        raise FileNotFoundError(f"Commodity prices not found at {prices_path}")
+    prices = pd.read_csv(prices_path, parse_dates=["date"], index_col="date")
     prices = prices.sort_index()
     raw = np.log(prices / prices.shift(1)).dropna(how="any")
     commodities = raw.columns.tolist()

@@ -16,6 +16,7 @@ No CCA, no standardization, no monthly-style forward-filling.
 
 See ``prompt.md`` for the full specification.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,17 +48,51 @@ LONG_BRIDGE_FLAG = 7
 # mean-reverting stationary uncertainty indices); they may be switched to
 # "diff" here and the report will reflect it.
 TRANSFORMS = {
-    **{c: "log_return" for c in [
-        "fx_dxy", "fx_bbdxy", "fx_eurusd", "fx_usdcnh", "fx_audusd",
-        "fx_usdbrl", "fx_usdclp", "fx_usdcad", "fx_usdnok", "fx_usdzar",
-        "spx", "mxwo", "mxef", "csi300", "shcomp", "hscei", "xle",
-        "bdiy", "bdti",
-    ]},
-    **{c: "diff" for c in [
-        "ust_10y", "ust_5y", "ust_2y", "tips_10y", "tips_5y",
-        "be_10y", "be_5y", "inflsw_5y", "inflsw_10y", "cny_10y",
-        "hy_oas", "ig_oas", "vix", "move", "ovx", "gvz",
-    ]},
+    **{
+        c: "log_return"
+        for c in [
+            "fx_dxy",
+            "fx_bbdxy",
+            "fx_eurusd",
+            "fx_usdcnh",
+            "fx_audusd",
+            "fx_usdbrl",
+            "fx_usdclp",
+            "fx_usdcad",
+            "fx_usdnok",
+            "fx_usdzar",
+            "spx",
+            "mxwo",
+            "mxef",
+            "csi300",
+            "shcomp",
+            "hscei",
+            "xle",
+            "bdiy",
+            "bdti",
+        ]
+    },
+    **{
+        c: "diff"
+        for c in [
+            "ust_10y",
+            "ust_5y",
+            "ust_2y",
+            "tips_10y",
+            "tips_5y",
+            "be_10y",
+            "be_5y",
+            "inflsw_5y",
+            "inflsw_10y",
+            "cny_10y",
+            "hy_oas",
+            "ig_oas",
+            "vix",
+            "move",
+            "ovx",
+            "gvz",
+        ]
+    },
     "gpr": "level",
     "epu": "level",
 }
@@ -85,48 +120,326 @@ class SeriesMeta:
 
 MANIFEST: list[SeriesMeta] = [
     # --- FX (all log_return; direction not uniform) ---
-    SeriesMeta("fx_dxy", "ICE US Dollar Index", "DXY Curncy", "PX_LAST", "index", "UP=USD strong", "FX"),
-    SeriesMeta("fx_bbdxy", "Bloomberg Dollar Spot Index", "BBDXY Index", "PX_LAST", "index", "UP=USD strong", "FX"),
-    SeriesMeta("fx_eurusd", "Euro / US Dollar", "EURUSD Curncy", "PX_LAST", "USD/EUR", "UP=EUR strong", "FX"),
-    SeriesMeta("fx_usdcnh", "US Dollar / Offshore Yuan", "USDCNH Curncy", "PX_LAST", "CNH/USD", "UP=USD strong", "FX"),
-    SeriesMeta("fx_audusd", "Australian Dollar / US Dollar", "AUDUSD Curncy", "PX_LAST", "USD/AUD", "UP=AUD strong", "FX"),
-    SeriesMeta("fx_usdbrl", "US Dollar / Brazilian Real", "USDBRL Curncy", "PX_LAST", "BRL/USD", "UP=USD strong", "FX"),
-    SeriesMeta("fx_usdclp", "US Dollar / Chilean Peso", "USDCLP Curncy", "PX_LAST", "CLP/USD", "UP=USD strong", "FX"),
-    SeriesMeta("fx_usdcad", "US Dollar / Canadian Dollar", "USDCAD Curncy", "PX_LAST", "CAD/USD", "UP=USD strong", "FX"),
-    SeriesMeta("fx_usdnok", "US Dollar / Norwegian Krone", "USDNOK Curncy", "PX_LAST", "NOK/USD", "UP=USD strong", "FX"),
-    SeriesMeta("fx_usdzar", "US Dollar / South African Rand", "USDZAR Curncy", "PX_LAST", "ZAR/USD", "UP=USD strong", "FX"),
+    SeriesMeta(
+        "fx_dxy", "ICE US Dollar Index", "DXY Curncy", "PX_LAST", "index", "UP=USD strong", "FX"
+    ),
+    SeriesMeta(
+        "fx_bbdxy",
+        "Bloomberg Dollar Spot Index",
+        "BBDXY Index",
+        "PX_LAST",
+        "index",
+        "UP=USD strong",
+        "FX",
+    ),
+    SeriesMeta(
+        "fx_eurusd",
+        "Euro / US Dollar",
+        "EURUSD Curncy",
+        "PX_LAST",
+        "USD/EUR",
+        "UP=EUR strong",
+        "FX",
+    ),
+    SeriesMeta(
+        "fx_usdcnh",
+        "US Dollar / Offshore Yuan",
+        "USDCNH Curncy",
+        "PX_LAST",
+        "CNH/USD",
+        "UP=USD strong",
+        "FX",
+    ),
+    SeriesMeta(
+        "fx_audusd",
+        "Australian Dollar / US Dollar",
+        "AUDUSD Curncy",
+        "PX_LAST",
+        "USD/AUD",
+        "UP=AUD strong",
+        "FX",
+    ),
+    SeriesMeta(
+        "fx_usdbrl",
+        "US Dollar / Brazilian Real",
+        "USDBRL Curncy",
+        "PX_LAST",
+        "BRL/USD",
+        "UP=USD strong",
+        "FX",
+    ),
+    SeriesMeta(
+        "fx_usdclp",
+        "US Dollar / Chilean Peso",
+        "USDCLP Curncy",
+        "PX_LAST",
+        "CLP/USD",
+        "UP=USD strong",
+        "FX",
+    ),
+    SeriesMeta(
+        "fx_usdcad",
+        "US Dollar / Canadian Dollar",
+        "USDCAD Curncy",
+        "PX_LAST",
+        "CAD/USD",
+        "UP=USD strong",
+        "FX",
+    ),
+    SeriesMeta(
+        "fx_usdnok",
+        "US Dollar / Norwegian Krone",
+        "USDNOK Curncy",
+        "PX_LAST",
+        "NOK/USD",
+        "UP=USD strong",
+        "FX",
+    ),
+    SeriesMeta(
+        "fx_usdzar",
+        "US Dollar / South African Rand",
+        "USDZAR Curncy",
+        "PX_LAST",
+        "ZAR/USD",
+        "UP=USD strong",
+        "FX",
+    ),
     # --- Rates / Inflation (all diff) ---
-    SeriesMeta("ust_10y", "10Y US Treasury yield", "USGG10YR Index", "PX_LAST", "yield %", "level=yield", "Rates_Infl"),
-    SeriesMeta("ust_5y", "5Y US Treasury yield", "USGG5YR Index", "PX_LAST", "yield %", "level=yield", "Rates_Infl"),
-    SeriesMeta("ust_2y", "2Y US Treasury yield", "USGG2YR Index", "PX_LAST", "yield %", "level=yield", "Rates_Infl"),
-    SeriesMeta("tips_10y", "10Y TIPS real yield", "GTII10 Govt", "YLD_CNV_LAST", "real yield %", "can be negative -> never log", "Rates_Infl"),
-    SeriesMeta("tips_5y", "5Y TIPS real yield", "GTII5 Govt", "YLD_CNV_LAST", "real yield %", "can be negative -> never log", "Rates_Infl"),
-    SeriesMeta("be_10y", "10Y breakeven inflation", "USGGBE10 Index", "PX_LAST", "breakeven %", "", "Rates_Infl"),
-    SeriesMeta("be_5y", "5Y breakeven inflation", "USGGBE05 Index", "PX_LAST", "breakeven %", "", "Rates_Infl"),
-    SeriesMeta("inflsw_5y", "5Y USD inflation swap", "USSWIT5 Curncy", "PX_LAST", "swap %", "leg for 5y5y", "Rates_Infl"),
-    SeriesMeta("inflsw_10y", "10Y USD inflation swap", "USSWIT10 Curncy", "PX_LAST", "swap %", "leg for 5y5y", "Rates_Infl"),
-    SeriesMeta("cny_10y", "10Y China govt bond yield", "GCNY10YR Index", "PX_LAST", "yield %", "source seam 2016-08-02", "Rates_Infl"),
+    SeriesMeta(
+        "ust_10y",
+        "10Y US Treasury yield",
+        "USGG10YR Index",
+        "PX_LAST",
+        "yield %",
+        "level=yield",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "ust_5y",
+        "5Y US Treasury yield",
+        "USGG5YR Index",
+        "PX_LAST",
+        "yield %",
+        "level=yield",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "ust_2y",
+        "2Y US Treasury yield",
+        "USGG2YR Index",
+        "PX_LAST",
+        "yield %",
+        "level=yield",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "tips_10y",
+        "10Y TIPS real yield",
+        "GTII10 Govt",
+        "YLD_CNV_LAST",
+        "real yield %",
+        "can be negative -> never log",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "tips_5y",
+        "5Y TIPS real yield",
+        "GTII5 Govt",
+        "YLD_CNV_LAST",
+        "real yield %",
+        "can be negative -> never log",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "be_10y",
+        "10Y breakeven inflation",
+        "USGGBE10 Index",
+        "PX_LAST",
+        "breakeven %",
+        "",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "be_5y",
+        "5Y breakeven inflation",
+        "USGGBE05 Index",
+        "PX_LAST",
+        "breakeven %",
+        "",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "inflsw_5y",
+        "5Y USD inflation swap",
+        "USSWIT5 Curncy",
+        "PX_LAST",
+        "swap %",
+        "leg for 5y5y",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "inflsw_10y",
+        "10Y USD inflation swap",
+        "USSWIT10 Curncy",
+        "PX_LAST",
+        "swap %",
+        "leg for 5y5y",
+        "Rates_Infl",
+    ),
+    SeriesMeta(
+        "cny_10y",
+        "10Y China govt bond yield",
+        "GCNY10YR Index",
+        "PX_LAST",
+        "yield %",
+        "source seam 2016-08-02",
+        "Rates_Infl",
+    ),
     # --- Credit / Vol (all diff) ---
-    SeriesMeta("hy_oas", "US Corp High Yield OAS", "LF98OAS Index", "PX_LAST", "OAS % (x100=bp)", "UP=risk-off", "Credit_Vol"),
-    SeriesMeta("ig_oas", "US Agg Corp (IG) OAS", "LUACOAS Index", "PX_LAST", "OAS % (x100=bp)", "UP=risk-off; long flat runs", "Credit_Vol"),
-    SeriesMeta("vix", "CBOE S&P 500 implied vol", "VIX Index", "PX_LAST", "vol pts", "UP=risk-off", "Credit_Vol"),
-    SeriesMeta("move", "ICE BofA MOVE (rates vol)", "MOVE Index", "PX_LAST", "bp vol", "UP=rates stress", "Credit_Vol"),
-    SeriesMeta("ovx", "CBOE Crude Oil implied vol", "OVX Index", "PX_LAST", "vol pts", "UP=oil stress", "Credit_Vol"),
-    SeriesMeta("gvz", "CBOE Gold implied vol", "GVZ Index", "PX_LAST", "vol pts", "UP=gold stress", "Credit_Vol"),
+    SeriesMeta(
+        "hy_oas",
+        "US Corp High Yield OAS",
+        "LF98OAS Index",
+        "PX_LAST",
+        "OAS % (x100=bp)",
+        "UP=risk-off",
+        "Credit_Vol",
+    ),
+    SeriesMeta(
+        "ig_oas",
+        "US Agg Corp (IG) OAS",
+        "LUACOAS Index",
+        "PX_LAST",
+        "OAS % (x100=bp)",
+        "UP=risk-off; long flat runs",
+        "Credit_Vol",
+    ),
+    SeriesMeta(
+        "vix",
+        "CBOE S&P 500 implied vol",
+        "VIX Index",
+        "PX_LAST",
+        "vol pts",
+        "UP=risk-off",
+        "Credit_Vol",
+    ),
+    SeriesMeta(
+        "move",
+        "ICE BofA MOVE (rates vol)",
+        "MOVE Index",
+        "PX_LAST",
+        "bp vol",
+        "UP=rates stress",
+        "Credit_Vol",
+    ),
+    SeriesMeta(
+        "ovx",
+        "CBOE Crude Oil implied vol",
+        "OVX Index",
+        "PX_LAST",
+        "vol pts",
+        "UP=oil stress",
+        "Credit_Vol",
+    ),
+    SeriesMeta(
+        "gvz",
+        "CBOE Gold implied vol",
+        "GVZ Index",
+        "PX_LAST",
+        "vol pts",
+        "UP=gold stress",
+        "Credit_Vol",
+    ),
     # --- Equity / Growth (all log_return) ---
-    SeriesMeta("spx", "S&P 500 (price)", "SPX Index", "PX_LAST", "index", "UP=risk-on", "Equity_Growth"),
-    SeriesMeta("mxwo", "MSCI World (USD)", "MXWO Index", "PX_LAST", "index", "global growth", "Equity_Growth"),
-    SeriesMeta("mxef", "MSCI Emerging Markets", "MXEF Index", "PX_LAST", "index", "EM growth", "Equity_Growth"),
-    SeriesMeta("csi300", "CSI 300 (China A-shares)", "SHSZ300 Index", "PX_LAST", "index", "Asia close", "Equity_Growth"),
-    SeriesMeta("shcomp", "Shanghai Composite", "SHCOMP Index", "PX_LAST", "index", "Asia close", "Equity_Growth"),
-    SeriesMeta("hscei", "Hang Seng China Enterprises", "HSCEI Index", "PX_LAST", "index", "HK close", "Equity_Growth"),
-    SeriesMeta("xle", "Energy Select Sector SPDR", "XLE US Equity", "PX_LAST", "price", "energy equity", "Equity_Growth"),
+    SeriesMeta(
+        "spx", "S&P 500 (price)", "SPX Index", "PX_LAST", "index", "UP=risk-on", "Equity_Growth"
+    ),
+    SeriesMeta(
+        "mxwo",
+        "MSCI World (USD)",
+        "MXWO Index",
+        "PX_LAST",
+        "index",
+        "global growth",
+        "Equity_Growth",
+    ),
+    SeriesMeta(
+        "mxef",
+        "MSCI Emerging Markets",
+        "MXEF Index",
+        "PX_LAST",
+        "index",
+        "EM growth",
+        "Equity_Growth",
+    ),
+    SeriesMeta(
+        "csi300",
+        "CSI 300 (China A-shares)",
+        "SHSZ300 Index",
+        "PX_LAST",
+        "index",
+        "Asia close",
+        "Equity_Growth",
+    ),
+    SeriesMeta(
+        "shcomp",
+        "Shanghai Composite",
+        "SHCOMP Index",
+        "PX_LAST",
+        "index",
+        "Asia close",
+        "Equity_Growth",
+    ),
+    SeriesMeta(
+        "hscei",
+        "Hang Seng China Enterprises",
+        "HSCEI Index",
+        "PX_LAST",
+        "index",
+        "HK close",
+        "Equity_Growth",
+    ),
+    SeriesMeta(
+        "xle",
+        "Energy Select Sector SPDR",
+        "XLE US Equity",
+        "PX_LAST",
+        "price",
+        "energy equity",
+        "Equity_Growth",
+    ),
     # --- Freight (all log_return) ---
-    SeriesMeta("bdiy", "Baltic Dry Index", "BDIY Index", "PX_LAST", "index", "dry-bulk freight", "Freight"),
-    SeriesMeta("bdti", "Baltic Dirty Tanker (pulled as BIDY)", "BIDY Index", "PX_LAST", "index", "dirty-tanker freight", "Freight"),
+    SeriesMeta(
+        "bdiy", "Baltic Dry Index", "BDIY Index", "PX_LAST", "index", "dry-bulk freight", "Freight"
+    ),
+    SeriesMeta(
+        "bdti",
+        "Baltic Dirty Tanker (pulled as BIDY)",
+        "BIDY Index",
+        "PX_LAST",
+        "index",
+        "dirty-tanker freight",
+        "Freight",
+    ),
     # --- Uncertainty (calendar-daily, default level) ---
-    SeriesMeta("gpr", "Daily Geopolitical Risk (Caldara-Iacoviello)", "—", "GPRD", "index", "uncertainty (already stationary)", "GPR"),
-    SeriesMeta("epu", "Daily US Economic Policy Uncertainty (EPU)", "—", "daily_policy_index", "index", "uncertainty (already stationary)", "EPR"),
+    SeriesMeta(
+        "gpr",
+        "Daily Geopolitical Risk (Caldara-Iacoviello)",
+        "—",
+        "GPRD",
+        "index",
+        "uncertainty (already stationary)",
+        "GPR",
+    ),
+    SeriesMeta(
+        "epu",
+        "Daily US Economic Policy Uncertainty (EPU)",
+        "—",
+        "daily_policy_index",
+        "index",
+        "uncertainty (already stationary)",
+        "EPR",
+    ),
 ]
 
 SERIES_IDS = [m.series_id for m in MANIFEST]
@@ -149,7 +462,7 @@ def _clean_series(sid: str, dates: list, values: list) -> pd.Series:
         name=sid,
     )
     s.index = s.index.normalize()
-    s = s[~s.index.isna()]              # drop trailing padding rows
+    s = s[~s.index.isna()]  # drop trailing padding rows
     s = s.sort_index(kind="stable")
     s = s[~s.index.duplicated(keep="last")]  # dedupe dates, keep last
     assert s.index.is_monotonic_increasing, f"{sid}: dates not monotonic"
@@ -181,8 +494,8 @@ def parse_bbg_sheet(ws_rows: list[list]) -> dict[str, pd.Series]:
             continue
         sid = str(head).strip()
         # metadata rows 2-4 (0-indexed 1..3): label, ticker, field
-        ticker = (cell(2, c) or "")
-        field = (cell(3, c) or "")
+        ticker = cell(2, c) or ""
+        field = cell(3, c) or ""
         # rows 7..end (0-indexed 6..) hold date | value
         dates, values = [], []
         for r in range(6, n_rows):
@@ -249,21 +562,23 @@ def parse_regimes(ws_rows: list[list]) -> pd.DataFrame:
     for r in ws_rows[1:]:
         if r[0] is None or str(r[0]).strip() == "":
             continue
-        rows.append({
-            "regime": str(r[0]).strip(),
-            "name": str(r[1]).strip() if r[1] is not None else "",
-            "start": _to_date(r[2]),
-            "end": _to_date(r[3]),
-            "span": str(r[4]).strip() if r[4] is not None else "",
-            "rationale": str(r[5]).strip() if len(r) > 5 and r[5] is not None else "",
-        })
+        rows.append(
+            {
+                "regime": str(r[0]).strip(),
+                "name": str(r[1]).strip() if r[1] is not None else "",
+                "start": _to_date(r[2]),
+                "end": _to_date(r[3]),
+                "span": str(r[4]).strip() if r[4] is not None else "",
+                "rationale": str(r[5]).strip() if len(r) > 5 and r[5] is not None else "",
+            }
+        )
     df = pd.DataFrame(rows)
     # Contiguity / non-overlap check.
     df = df.sort_values("start").reset_index(drop=True)
     for i in range(len(df) - 1):
         gap = (df.loc[i + 1, "start"] - df.loc[i, "end"]).days
         assert df.loc[i, "end"] < df.loc[i + 1, "start"], "regimes overlap"
-        assert gap >= 1, f"regime gap unexpected between {df.loc[i,'regime']} and next"
+        assert gap >= 1, f"regime gap unexpected between {df.loc[i, 'regime']} and next"
     return df
 
 
@@ -289,8 +604,7 @@ def apply_transform(s: pd.Series, kind: str) -> pd.Series:
     if kind == "log_return":
         pos = s.dropna()
         assert (pos > 0).all(), (
-            f"{s.name}: log_return on non-positive value "
-            f"(min={pos.min()}) — never log this series"
+            f"{s.name}: log_return on non-positive value (min={pos.min()}) — never log this series"
         )
         return np.log(s).diff()
     raise ValueError(f"unknown transform {kind!r}")
@@ -310,7 +624,7 @@ def count_flat_runs(s: pd.Series, threshold: int) -> int:
     vals = s.dropna().to_numpy()
     if len(vals) == 0:
         return 0
-    count = cur = 1
+    cur = 1
     runs = 0
     for i in range(1, len(vals)):
         if vals[i] == vals[i - 1]:
@@ -408,16 +722,18 @@ def run(input_path: Path, outdir: Path) -> None:
         stat[sid] = apply_transform(levels_aligned[sid], TRANSFORMS[sid])
     stat = stat[SERIES_IDS]
     n_before = len(stat)
-    stat = stat.iloc[1:]                  # drop first row (diff/log NaN)
+    stat = stat.iloc[1:]  # drop first row (diff/log NaN)
     # Which columns drive the row drops? (post-transform, pre-dropna NaN counts)
-    drop_breakdown = {sid: int(stat[sid].isna().sum())
-                      for sid in SERIES_IDS if stat[sid].isna().any()}
-    stat = stat.dropna(how="any")         # trim gpr head + any residual NaN
+    drop_breakdown = {
+        sid: int(stat[sid].isna().sum()) for sid in SERIES_IDS if stat[sid].isna().any()
+    }
+    stat = stat.dropna(how="any")  # trim gpr head + any residual NaN
     n_dropped = n_before - len(stat)
     stat_start = stat.index.min()
     stat["regime"] = assign_regime(stat.index, regimes).to_numpy()
-    print(f"Stationary panel: {len(stat)} rows, start {stat_start.date()}, "
-          f"{n_dropped} rows dropped")
+    print(
+        f"Stationary panel: {len(stat)} rows, start {stat_start.date()}, {n_dropped} rows dropped"
+    )
 
     # ---- Per-regime slices ----------------------------------------------
     regime_counts: dict[str, int] = {}
@@ -434,27 +750,32 @@ def run(input_path: Path, outdir: Path) -> None:
         checks.append((name, bool(cond), detail))
 
     value_cols = [c for c in stat.columns if c != "regime"]
-    check("Exactly 37 value columns in manifest order",
-          value_cols == SERIES_IDS and len(SERIES_IDS) == 37,
-          f"{len(value_cols)} cols")
+    check(
+        "Exactly 37 value columns in manifest order",
+        value_cols == SERIES_IDS and len(SERIES_IDS) == 37,
+        f"{len(value_cols)} cols",
+    )
 
     bounds_ok = all(
         (clipped[sid].index.min() >= w0) and (clipped[sid].index.max() <= w1)
-        for sid in SERIES_IDS if len(clipped[sid])
+        for sid in SERIES_IDS
+        if len(clipped[sid])
     )
     check("Every series raw date within window", bounds_ok)
 
-    check("Master grid length in 3290-3320", 3290 <= len(master_grid) <= 3320,
-          f"{len(master_grid)}")
+    check(
+        "Master grid length in 3290-3320", 3290 <= len(master_grid) <= 3320, f"{len(master_grid)}"
+    )
 
-    check("macro_stationary has no NaN in value columns",
-          not stat[value_cols].isna().any().any())
-    check("regime non-null for all stationary rows",
-          stat["regime"].notna().all())
+    check("macro_stationary has no NaN in value columns", not stat[value_cols].isna().any().any())
+    check("regime non-null for all stationary rows", stat["regime"].notna().all())
 
-    part_ok = (sum(regime_counts.values()) == len(stat))
-    check("Regimes partition the stationary panel", part_ok,
-          f"sum={sum(regime_counts.values())} rows={len(stat)}")
+    part_ok = sum(regime_counts.values()) == len(stat)
+    check(
+        "Regimes partition the stationary panel",
+        part_ok,
+        f"sum={sum(regime_counts.values())} rows={len(stat)}",
+    )
 
     logret_ok = True
     for sid in SERIES_IDS:
@@ -483,12 +804,22 @@ def run(input_path: Path, outdir: Path) -> None:
     write_wide(stat, proc / "macro_stationary.csv")
 
     # transform_manifest.csv
-    man = pd.DataFrame([{
-        "series_id": m.series_id, "label": m.label, "ticker": m.ticker,
-        "field": m.field, "units": m.units, "direction": m.direction,
-        "source_sheet": m.source_sheet, "transform": TRANSFORMS[m.series_id],
-        "notes": m.notes,
-    } for m in MANIFEST])
+    man = pd.DataFrame(
+        [
+            {
+                "series_id": m.series_id,
+                "label": m.label,
+                "ticker": m.ticker,
+                "field": m.field,
+                "units": m.units,
+                "direction": m.direction,
+                "source_sheet": m.source_sheet,
+                "transform": TRANSFORMS[m.series_id],
+                "notes": m.notes,
+            }
+            for m in MANIFEST
+        ]
+    )
     man.to_csv(proc / "transform_manifest.csv", index=False)
     print(f"  wrote {proc / 'transform_manifest.csv'}")
 
@@ -497,7 +828,8 @@ def run(input_path: Path, outdir: Path) -> None:
     reg_out["start"] = reg_out["start"].dt.strftime("%Y-%m-%d")
     reg_out["end"] = reg_out["end"].dt.strftime("%Y-%m-%d")
     reg_out[["regime", "name", "start", "end", "span", "rationale"]].to_csv(
-        proc / "regimes.csv", index=False)
+        proc / "regimes.csv", index=False
+    )
     print(f"  wrote {proc / 'regimes.csv'}")
 
     # per-regime slices
@@ -517,9 +849,20 @@ def run(input_path: Path, outdir: Path) -> None:
     # DATA QUALITY REPORT
     # ====================================================================
     report = build_report(
-        input_path, master_grid, stat_start, n_dropped, drop_breakdown,
-        levels_raw, levels_aligned, stat, clipped,
-        bridge_info, regime_counts, regimes, checks, all_pass,
+        input_path,
+        master_grid,
+        stat_start,
+        n_dropped,
+        drop_breakdown,
+        levels_raw,
+        levels_aligned,
+        stat,
+        clipped,
+        bridge_info,
+        regime_counts,
+        regimes,
+        checks,
+        all_pass,
     )
     (reports / "data_quality_report.md").write_text(report)
     (outdir / "data" / "data_quality_report.md").write_text(report)
@@ -534,9 +877,22 @@ def run(input_path: Path, outdir: Path) -> None:
     print("\nAll acceptance checks PASSED.")
 
 
-def build_report(input_path, master_grid, stat_start, n_dropped, drop_breakdown,
-                 levels_raw, levels_aligned, stat, clipped,
-                 bridge_info, regime_counts, regimes, checks, all_pass) -> str:
+def build_report(
+    input_path,
+    master_grid,
+    stat_start,
+    n_dropped,
+    drop_breakdown,
+    levels_raw,
+    levels_aligned,
+    stat,
+    clipped,
+    bridge_info,
+    regime_counts,
+    regimes,
+    checks,
+    all_pass,
+) -> str:
     L = []
     L.append("# Macro Panel Data Quality Report\n")
     L.append(f"- **Input:** `{input_path}`")
@@ -545,26 +901,33 @@ def build_report(input_path, master_grid, stat_start, n_dropped, drop_breakdown,
     L.append(f"- **Stationary panel common start (NaN-free):** {stat_start.date()}")
     L.append(f"- **Rows dropped building stationary panel:** {n_dropped}")
     if drop_breakdown:
-        bd = ", ".join(f"`{k}`={v}" for k, v in sorted(
-            drop_breakdown.items(), key=lambda kv: -kv[1]))
-        L.append(f"  - Driven by residual NaNs (post-transform, pre-dropna) in: {bd}. "
-                 "The 1 leading row is the differencing NaN; the rest are rows where "
-                 "`gpr` is missing — its ~10-day in-window head plus recurring ~23-calendar-day "
-                 "gaps (around Jan 1 / Nov 1 each year) that exceed the 10-trading-day bridge "
-                 "limit. These rows are dropped only from the convenience `macro_stationary` "
-                 "panel; the preferred downstream path (reindex `macro_levels_aligned` to factor "
-                 "dates, transform there) handles `gpr` NaNs independently and need not lose them.")
+        bd = ", ".join(
+            f"`{k}`={v}" for k, v in sorted(drop_breakdown.items(), key=lambda kv: -kv[1])
+        )
+        L.append(
+            f"  - Driven by residual NaNs (post-transform, pre-dropna) in: {bd}. "
+            "The 1 leading row is the differencing NaN; the rest are rows where "
+            "`gpr` is missing — its ~10-day in-window head plus recurring ~23-calendar-day "
+            "gaps (around Jan 1 / Nov 1 each year) that exceed the 10-trading-day bridge "
+            "limit. These rows are dropped only from the convenience `macro_stationary` "
+            "panel; the preferred downstream path (reindex `macro_levels_aligned` to factor "
+            "dates, transform there) handles `gpr` NaNs independently and need not lose them."
+        )
     L.append(f"- **macro_levels_raw rows:** {len(levels_raw)}")
     L.append(f"- **macro_levels_aligned rows:** {len(levels_aligned)}")
     L.append(f"- **macro_stationary rows:** {len(stat)}")
-    L.append(f"- **gpr/epu transform:** gpr=`{TRANSFORMS['gpr']}`, epu=`{TRANSFORMS['epu']}` "
-             "(default `level`; mean-reverting stationary uncertainty indices, editable to `diff`)")
+    L.append(
+        f"- **gpr/epu transform:** gpr=`{TRANSFORMS['gpr']}`, epu=`{TRANSFORMS['epu']}` "
+        "(default `level`; mean-reverting stationary uncertainty indices, editable to `diff`)"
+    )
     L.append("")
 
     # Per-series table
     L.append("## Per-series QA\n")
-    L.append("| series_id | sheet | ticker | field | transform | raw first | raw last | "
-             "raw non-null | bridged days | longest bridge | min | max | mean | flat runs>7 |")
+    L.append(
+        "| series_id | sheet | ticker | field | transform | raw first | raw last | "
+        "raw non-null | bridged days | longest bridge | min | max | mean | flat runs>7 |"
+    )
     L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for m in MANIFEST:
         sid = m.series_id
@@ -583,8 +946,11 @@ def build_report(input_path, master_grid, stat_start, n_dropped, drop_breakdown,
     L.append("")
 
     # Long bridges
-    long_bridges = [(sid, bridge_info[sid]['longest_bridge'])
-                    for sid in SERIES_IDS if bridge_info[sid]['longest_bridge'] > LONG_BRIDGE_FLAG]
+    long_bridges = [
+        (sid, bridge_info[sid]["longest_bridge"])
+        for sid in SERIES_IDS
+        if bridge_info[sid]["longest_bridge"] > LONG_BRIDGE_FLAG
+    ]
     L.append("## Long bridged runs (> 7 trading days)\n")
     if long_bridges:
         for sid, n in long_bridges:
@@ -595,23 +961,35 @@ def build_report(input_path, master_grid, stat_start, n_dropped, drop_breakdown,
 
     # Global flags
     L.append("## Global flags\n")
-    L.append("- **`cny_10y`**: Bloomberg pricing-source **seam at 2016-08-02** "
-             "(pre-seam priced by PCS:BGNC). Treat R1/R2/early-R3 China-yield results with care.")
-    L.append("- **`gpr`**: in-window coverage starts **2013-11-01**; ~10 leading trading days "
-             "are NaN in levels and excluded from the stationary panel. It also has recurring "
-             "**~23-calendar-day gaps around Jan 1 / Nov 1 each year** (≈16 trading days) that "
-             "exceed the 10-trading-day bridge limit and therefore remain NaN on the master grid; "
-             "those rows are dropped from the convenience `macro_stationary` panel (see dropped-row "
-             "breakdown above). Shorter scattered gaps are bridged by ffill. Raw in-window count "
-             "(3773) matches the reference exactly, so this is the source data, not a parse error.")
-    L.append("- **`ig_oas`**: long flat runs observed (tight IG spreads at 2-dp precision); "
-             "confirm not a stale-feed artifact (see flat-runs column).")
-    L.append("- **`bdti`**: pulled under ticker **`BIDY Index`**, labelled 'Baltic Dirty Tanker.' "
-             "Confirm `BIDY` vs `BDTI` if results look off.")
-    L.append("- **`gpr`/`epu`**: calendar-daily sources reduced to the trading-day grid; "
-             "defaulted to `level` transform.")
-    L.append("- **FX direction is not uniform**: USD-per-FX for `fx_eurusd`, `fx_audusd`; "
-             "FX-per-USD for the `fx_usd*` pairs — see manifest `direction` column for sign handling.")
+    L.append(
+        "- **`cny_10y`**: Bloomberg pricing-source **seam at 2016-08-02** "
+        "(pre-seam priced by PCS:BGNC). Treat R1/R2/early-R3 China-yield results with care."
+    )
+    L.append(
+        "- **`gpr`**: in-window coverage starts **2013-11-01**; ~10 leading trading days "
+        "are NaN in levels and excluded from the stationary panel. It also has recurring "
+        "**~23-calendar-day gaps around Jan 1 / Nov 1 each year** (≈16 trading days) that "
+        "exceed the 10-trading-day bridge limit and therefore remain NaN on the master grid; "
+        "those rows are dropped from the convenience `macro_stationary` panel (see dropped-row "
+        "breakdown above). Shorter scattered gaps are bridged by ffill. Raw in-window count "
+        "(3773) matches the reference exactly, so this is the source data, not a parse error."
+    )
+    L.append(
+        "- **`ig_oas`**: long flat runs observed (tight IG spreads at 2-dp precision); "
+        "confirm not a stale-feed artifact (see flat-runs column)."
+    )
+    L.append(
+        "- **`bdti`**: pulled under ticker **`BIDY Index`**, labelled 'Baltic Dirty Tanker.' "
+        "Confirm `BIDY` vs `BDTI` if results look off."
+    )
+    L.append(
+        "- **`gpr`/`epu`**: calendar-daily sources reduced to the trading-day grid; "
+        "defaulted to `level` transform."
+    )
+    L.append(
+        "- **FX direction is not uniform**: USD-per-FX for `fx_eurusd`, `fx_audusd`; "
+        "FX-per-USD for the `fx_usd*` pairs — see manifest `direction` column for sign handling."
+    )
     L.append("")
 
     # Regime slices
@@ -619,18 +997,24 @@ def build_report(input_path, master_grid, stat_start, n_dropped, drop_breakdown,
     L.append("| regime | name | start | end | rows |")
     L.append("|---|---|---|---|---|")
     for _, r in regimes.iterrows():
-        L.append(f"| {r['regime']} | {r['name']} | {r['start'].date()} | "
-                 f"{r['end'].date()} | {regime_counts[r['regime']]} |")
+        L.append(
+            f"| {r['regime']} | {r['name']} | {r['start'].date()} | "
+            f"{r['end'].date()} | {regime_counts[r['regime']]} |"
+        )
     L.append(f"| **total** | | | | **{sum(regime_counts.values())}** |")
     L.append("")
 
     # Downstream interface
     L.append("## Downstream interface (CCA)\n")
-    L.append("- **Preferred path:** reindex `macro_levels_aligned` to the AE factor dates, "
-             "then difference / log-return on that calendar, so innovations are computed across "
-             "consecutive *factor* days (exactly correct).")
-    L.append("- **Convenience path:** `macro_stationary` differences on the macro union grid; "
-             "the two diverge only on days adjacent to calendar mismatches.")
+    L.append(
+        "- **Preferred path:** reindex `macro_levels_aligned` to the AE factor dates, "
+        "then difference / log-return on that calendar, so innovations are computed across "
+        "consecutive *factor* days (exactly correct)."
+    )
+    L.append(
+        "- **Convenience path:** `macro_stationary` differences on the macro union grid; "
+        "the two diverge only on days adjacent to calendar mismatches."
+    )
     L.append("- CCA is scale-invariant (internal whitening); no standardization is required.")
     L.append("")
 
@@ -646,8 +1030,11 @@ def build_report(input_path, master_grid, stat_start, n_dropped, drop_breakdown,
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Macro panel processing for AE<->Macro CCA.")
-    ap.add_argument("--input", default="data/macro/NEW_MACRO_COMMODITY_PANEL.xlsx",
-                    help="Path to the raw workbook.")
+    ap.add_argument(
+        "--input",
+        default="data/macro/NEW_MACRO_COMMODITY_PANEL.xlsx",
+        help="Path to the raw workbook.",
+    )
     ap.add_argument("--outdir", default=".", help="Output root directory.")
     args = ap.parse_args()
     run(Path(args.input), Path(args.outdir))

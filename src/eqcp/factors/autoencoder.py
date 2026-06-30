@@ -1,3 +1,5 @@
+"""Vanilla bottleneck autoencoder for commodity factor extraction."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,29 +9,30 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
+VALID_ACTIVATIONS = ("relu", "linear", "tanh")
+
 
 class VanillaAutoencoder(nn.Module):
-    """Single-layer bottleneck autoencoder with ReLU activations (paper eq. 2-3).
+    """Single-layer bottleneck autoencoder.
 
-    ``activation="linear"`` drops the ReLU, turning the model into a linear
-    autoencoder whose optimum spans the top-K principal subspace (a PCA baseline).
-    This is used by the synthetic AE-explainability study to isolate exactly how
-    much explainability loss is due to the ReLU rectification versus the
-    bottleneck itself. Default stays "relu" so the real pipeline is unchanged.
+    ``activation`` controls the encoder nonlinearity:
+    - ``relu`` (default): one-sided latents, project baseline
+    - ``linear``: PCA-like linear bottleneck
+    - ``tanh``: symmetric bounded latents (experiment knob for one-sidedness)
     """
 
     def __init__(self, n_assets: int, n_factors: int, activation: str = "relu") -> None:
         super().__init__()
-        if activation not in ("relu", "linear"):
-            raise ValueError(f"activation must be 'relu' or 'linear', got {activation!r}")
+        if activation not in VALID_ACTIVATIONS:
+            raise ValueError(f"activation must be one of {VALID_ACTIVATIONS}, got {activation!r}")
         self.activation = activation
         enc_layers: list[nn.Module] = [nn.Linear(n_assets, n_factors)]
         if activation == "relu":
             enc_layers.append(nn.ReLU())
+        elif activation == "tanh":
+            enc_layers.append(nn.Tanh())
         self.encoder = nn.Sequential(*enc_layers)
-        self.decoder = nn.Sequential(
-            nn.Linear(n_factors, n_assets),
-        )
+        self.decoder = nn.Sequential(nn.Linear(n_factors, n_assets))
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         return self.encoder(x)
@@ -38,17 +41,14 @@ class VanillaAutoencoder(nn.Module):
         return self.decoder(self.encode(x))
 
     def decoder_weight(self) -> np.ndarray:
-        """Decoder linear map W in x_hat = W f + b. Shape (n_assets, n_factors).
-
-        Because the decoder is a single linear layer, this is exactly the
-        Jacobian dx_i/df_k of the reconstruction w.r.t. the latent factors
-        (used by E0 anchor 2 and the E3 commodity fingerprint).
-        """
-        return self.decoder[0].weight.detach().cpu().numpy().astype(np.float64)
+        layer = self.decoder[0]
+        assert isinstance(layer, nn.Linear)
+        return layer.weight.detach().cpu().numpy().astype(np.float64)
 
     def decoder_bias(self) -> np.ndarray:
-        """Decoder bias b in x_hat = W f + b. Shape (n_assets,)."""
-        return self.decoder[0].bias.detach().cpu().numpy().astype(np.float64)
+        layer = self.decoder[0]
+        assert isinstance(layer, nn.Linear)
+        return layer.bias.detach().cpu().numpy().astype(np.float64)
 
 
 @dataclass
@@ -67,24 +67,6 @@ def train_vanilla_autoencoder(
     config: AETrainConfig | None = None,
     init_state: dict[str, torch.Tensor] | None = None,
 ) -> tuple[VanillaAutoencoder, np.ndarray]:
-    """
-    Train a vanilla AE on cross-sectional return vectors in the window.
-
-    Parameters
-    ----------
-    window_returns : ndarray, shape (M, N)
-        Z-scored returns for the estimation window.
-    config : AETrainConfig, optional
-    init_state : dict, optional
-        Optional warm-start weights (previous window's ``state_dict``) to reduce
-        cross-window drift, per E0 step 3 of the directive.
-
-    Returns
-    -------
-    model : trained VanillaAutoencoder
-    factors : ndarray, shape (M, K)
-        Latent factors f_t from the encoder for each day in the window.
-    """
     config = config or AETrainConfig()
     torch.manual_seed(config.seed)
 
