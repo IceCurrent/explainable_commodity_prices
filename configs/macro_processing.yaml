@@ -1,0 +1,49 @@
+window:
+  - "2013-10-18"
+  - "2026-06-01"
+bridge_limit: 10
+long_bridge_flag: 7
+bbg_sheets:
+  - FX
+  - Rates_Infl
+  - Credit_Vol
+  - Equity_Growth
+  - Freight
+transforms:
+  fx_dxy: log_return
+  fx_bbdxy: log_return
+  fx_eurusd: log_return
+  fx_usdcnh: log_return
+  fx_audusd: log_return
+  fx_usdbrl: log_return
+  fx_usdclp: log_return
+  fx_usdcad: log_return
+  fx_usdnok: log_return
+  fx_usdzar: log_return
+  spx: log_return
+  mxwo: log_return
+  mxef: log_return
+  csi300: log_return
+  shcomp: log_return
+  hscei: log_return
+  xle: log_return
+  bdiy: log_return
+  bdti: log_return
+  ust_10y: diff
+  ust_5y: diff
+  ust_2y: diff
+  tips_10y: diff
+  tips_5y: diff
+  be_10y: diff
+  be_5y: diff
+  inflsw_5y: diff
+  inflsw_10y: diff
+  cny_10y: diff
+  hy_oas: diff
+  ig_oas: diff
+  vix: diff
+  move: diff
+  ovx: diff
+  gvz: diff
+  gpr: level
+  epu: level

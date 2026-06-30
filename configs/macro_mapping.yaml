@@ -1,0 +1,28 @@
+ridge_grid: [0.0, 0.001, 0.01, 0.1, 1.0]
+n_perm_linear: 1000
+n_perm_kcca: 200
+n_perm_regime: 500
+n_boot: 1000
+mean_block: 21
+n_folds: 5
+embargo: 10
+kcca_reg: 1.0
+kcca_reg_grid: [0.1, 0.3, 1.0, 3.0, 10.0]
+kcca_gamma_scale: [0.5, 1.0, 2.0]
+kcca_stability_iqr_threshold: 0.15
+nystrom_landmarks: 400
+lags: [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
+boot_blocks: [10, 21, 42]
+china_seam: "2016-08-02"
+aligned_t_min: 2690
+encoder_activations: [relu, tanh, linear]
+bloc_map:
+  china: [fx_usdcnh, cny_10y, csi300, shcomp, hscei]
+  fx: [fx_dxy, fx_bbdxy, fx_eurusd, fx_audusd, fx_usdbrl, fx_usdclp, fx_usdcad, fx_usdnok, fx_usdzar]
+  rates: [ust_10y, ust_5y, ust_2y, tips_10y, tips_5y]
+  infl: [be_10y, be_5y, inflsw_5y, inflsw_10y]
+  credit: [hy_oas, ig_oas]
+  vol: [vix, move, ovx, gvz]
+  equity: [spx, mxwo, mxef, xle]
+  freight: [bdiy, bdti]
+  uncert: [gpr, epu]

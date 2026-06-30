@@ -74,7 +74,7 @@ mlruns/
 *.log
 logs/
 
-# Large factor artifacts (regenerate via scripts/extract_factors.py)
+# Large factor artifacts (regenerate via make mapping)
 results/factor_bundle*.npz
 *.npz
 
