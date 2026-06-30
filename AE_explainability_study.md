@@ -7,11 +7,6 @@ no ground truth to separate them. This study removes the confound by testing the
 **same AE and the same E1/E2 probes** on data whose generating relation we *know*.
 The AE becomes the only unknown in the chain, so any loss is attributable to it.
 
-Scope is deliberately narrow: **only the two mapping methods we already have** —
-E1 (linear spanning + Bai-Ng canonical correlations) and E2 (gradient-boosted
-nonlinear mapping + premium). No E3/E4/E5. This is a separate track from the
-commodity directive, which is left untouched.
-
 ---
 
 ## The core idea: decompose "explainability loss" into named, separable parts

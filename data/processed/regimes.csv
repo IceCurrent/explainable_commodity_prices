@@ -1,0 +1,10 @@
+regime,name,start,end,span,rationale
+R1,Late-QE calm,2013-10-18,2014-06-19,~8 mo,Post-taper-tantrum low-vol; oil rangebound ~$100-115 into its June-2014 peak. Pre-crash baseline.
+R2,Oil crash / strong-USD bear,2014-06-20,2016-02-11,~20 mo,"Brent ~$115→~$27; broad USD surge; OPEC inaction. Synchronized commodity bear, trough ~Feb-2016."
+R3,Reflation recovery,2016-02-12,2018-09-30,~31 mo,"Commodity recovery, China stimulus, weak-USD 2017, synchronized global growth."
+R4,Trade war / late cycle,2018-10-01,2020-02-19,~16 mo,"US-China tariffs, 2018-Q4 selloff, 2019 curve inversion. Ends at pre-COVID market peak."
+R5,COVID shock & rebound,2020-02-20,2020-12-31,~10 mo,Crash + reflation. Contains NEGATIVE WTI 2020-04-20 — extreme outlier for any oil-linked series.
+R6,Reflation & Ukraine supercycle,2021-01-01,2022-06-15,~17 mo,"Post-COVID demand, supply chains, Russia-Ukraine (2022-02-24) energy/metals spike; commodity peak ~mid-2022."
+R7,Fed hiking / disinflation,2022-06-16,2023-10-31,~16 mo,Fastest Fed cycle; Mar-2023 bank stress; 10Y peaks ~5% Oct-2023; commodity normalization. (USD LIBOR ends 2023-06-30.)
+R8,Plateau & easing pivot,2023-11-01,2024-12-31,~14 mo,Higher-for-longer plateau into soft landing; first Fed cut Sep-2024.
+R9,Recent / study-window events,2025-01-01,2026-06-01,~17 mo,"Contains your documented Hormuz energy shock, precious-metals blow-off & crash, and May cross-commodity decoupling. Sub-split once exact event dates are fixed."
