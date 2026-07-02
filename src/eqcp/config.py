@@ -84,8 +84,6 @@ class ForecastPBSVConfig:
     utility_gamma: float = 3.0
     stability_seeds: tuple[int, ...] = (0, 1, 2)
     lagged_macro_series: tuple[str, ...] = ("gpr", "epu")
-    exclude_commodities: tuple[str, ...] = ()
-    sectors: dict[str, list[str]] = field(default_factory=dict)
 
 
 def load_forecast_pbsv_config(path: Path | None = None) -> ForecastPBSVConfig:
@@ -93,8 +91,6 @@ def load_forecast_pbsv_config(path: Path | None = None) -> ForecastPBSVConfig:
     for key in ("horizons", "ridge_grid", "stability_seeds", "lagged_macro_series"):
         if key in data:
             data[key] = tuple(data[key])
-    if "exclude_commodities" in data:
-        data["exclude_commodities"] = tuple(data["exclude_commodities"])
     return ForecastPBSVConfig(**data)
 
 

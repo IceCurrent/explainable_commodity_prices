@@ -1,22 +1,25 @@
-factors: found existing vanilla-AE export /Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_vanilla.csv  shape=(2870, 5)
-macro: 37 series from /Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/macro_stationary.csv
+factors: no export found; searched ['/Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_vanilla.csv']
+factors: regenerating from the project's vanilla AE (full-sample fit/encode)
+  AE: VanillaAutoencoder K=5 activation=relu epochs=100 seed=0 on 2870x21 commodity returns
+factors: wrote regenerated factors -> /Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_vanilla.csv  shape=(2870, 5)
+macro: 37 series from data/processed/macro_stationary.csv
 aligned: T=2691  K=5  J=37  (2013-11-01 -> 2026-06-01)
 preferred-path: max|rho_conv - rho_pref|=0.0000
-ridge: CV-selected ridge=0.0  OOS-mean scores={0.0: 0.2993, 0.001: 0.1033, 0.01: 0.1038, 0.1: 0.0948, 1.0: 0.0768}
-linear: rho_insample=[0.694 0.553 0.28  0.222 0.144]
-linear: rho_oos     =[0.641 0.487 0.157 0.156 0.055]
-linear: rho_min=0.144 OOS=0.055 OOS_null_p95=-0.003 OOS_perm_p=0.0010 boot=[0.143,0.219]
-linear: rho_mean=0.378 OOS=0.299 OOS_null_p95=0.019 OOS_perm_p=0.0010
-kcca: exact reg=1.0 top5=[0.778 0.749 0.692 0.644 0.638] min=0.487 mean=0.561
+ridge: CV-selected ridge=0.0  OOS-mean scores={0.0: 0.2912, 0.001: 0.1107, 0.01: 0.1061, 0.1: 0.0912, 1.0: 0.0399}
+linear: rho_insample=[0.696 0.554 0.295 0.204 0.123]
+linear: rho_oos     =[ 0.642  0.487  0.197  0.13  -0.   ]
+linear: rho_min=0.123 OOS=-0.000 OOS_null_p95=-0.004 OOS_perm_p=0.0370 boot=[0.127,0.196]
+linear: rho_mean=0.374 OOS=0.291 OOS_null_p95=0.020 OOS_perm_p=0.0010
+kcca: exact reg=1.0 top5=[0.782 0.747 0.692 0.657 0.643] min=0.476 mean=0.557
 kcca: Nystrom null min p=0.0050 mean p=0.0050
-bloc-PC: rho_is=[0.575 0.369 0.204 0.099 0.084] oos=[0.539 0.326 0.133 0.029 0.111] min_p=0.0010
+bloc-PC: rho_is=[0.58  0.376 0.212 0.092 0.057] oos=[0.547 0.337 0.156 0.066 0.051] min_p=0.0010
 per-regime: 9 regimes, low-power flagged: ['R1', 'R5', 'R8']
 lead/lag: peak at lag=0 (0=contemporaneous)
 robustness: 19 rows (drop-xle, ridge sweep, boot blocks, China seam)
 encoder experiment: activation=relu
-  AE: VanillaAutoencoder K=5 activation=relu epochs=100 seed=0 on 2870x27 commodity returns
+  AE: VanillaAutoencoder K=5 activation=relu epochs=100 seed=0 on 2870x21 commodity returns
 encoder experiment: activation=tanh
-  AE: VanillaAutoencoder K=5 activation=tanh epochs=100 seed=1 on 2870x27 commodity returns
+  AE: VanillaAutoencoder K=5 activation=tanh epochs=100 seed=1 on 2870x21 commodity returns
 encoder experiment: activation=linear
-  AE: VanillaAutoencoder K=5 activation=linear epochs=100 seed=2 on 2870x27 commodity returns
+  AE: VanillaAutoencoder K=5 activation=linear epochs=100 seed=2 on 2870x21 commodity returns
 encoder experiment: wrote 3 rows

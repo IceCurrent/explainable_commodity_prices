@@ -20,9 +20,5 @@ momentum_lookback: 252
 utility_gamma: 3.0
 stability_seeds: [0, 1, 2]
 lagged_macro_series: [gpr, epu]
-# Panel definition: exchange-traded futures with continuous daily price discovery.
-exclude_commodities: [Diesel, ThermalCoal, Methanol, HRCSteel, SGXIronOre, Lithium]
-sectors:
-  agriculture: [Coffee, SoybeanOil, Corn, Cotton, HRWWheat, LeanHogs, LiveCattle, Soybeans, Sugar]
-  energy: [Brent, WTI, Gasoline, HeatingOil, NaturalGas]
-  metals: [Gold, Silver, Copper, Aluminium, Nickel, Zinc, Platinum]
+# The panel definition (which futures are in-scope + the sector partition) is the
+# single source of truth in src/eqcp/io/commodities.py (EXCLUDED_COMMODITIES, SECTORS).

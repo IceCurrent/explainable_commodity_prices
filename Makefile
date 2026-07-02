@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck test macro-panel mapping synthetic forecast all slow
+.PHONY: install lint typecheck test macro-panel mapping synthetic forecast sectors all slow
 
 PYTHON ?= python3
 PIP ?= pip
@@ -38,6 +38,13 @@ synthetic:
 
 forecast:
 	$(PYTHON) -m eqcp.pipelines.forecast_pbsv_cli \
+		--macro data/processed/macro_stationary.csv \
+		--manifest data/processed/transform_manifest.csv \
+		--outdir . \
+		--seed 0
+
+sectors:
+	$(PYTHON) -m eqcp.pipelines.sector_analysis \
 		--macro data/processed/macro_stationary.csv \
 		--manifest data/processed/transform_manifest.csv \
 		--outdir . \

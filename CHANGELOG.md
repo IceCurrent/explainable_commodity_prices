@@ -1,5 +1,27 @@
 # Changelog — eqcp refactor
 
+## Panel curation + sector-wise analysis + main orchestrator
+
+- **Removed six stale-priced series entirely** from the commodity panel (`data/commodities/prices.csv`,
+  `returns.csv`): `Lithium` (69.7% zero-return days / 57-day stale runs), `HRCSteel` (37.6%),
+  `SGXIronOre` (23.8%), `Methanol` (19.4%), `ThermalCoal` (8.4%), `Diesel` (6.3%). These are not
+  continuously price-discovered daily futures; their stale zeros biased the AE, attenuated the CCA
+  correlations, and inflated forecast benchmarks. The retained **21** series are all < 2% stale.
+- **Single source of truth** for the panel definition: `eqcp.io.commodities.EXCLUDED_COMMODITIES`
+  and `SECTORS` (energy / agriculture / metals). `load_return_panel()` now enforces the exclusion by
+  default and accepts an explicit `commodities` subset (used to build per-sector sub-panels). The
+  redundant `exclude_commodities` / `sectors` fields were dropped from `configs/forecast_pbsv.yaml`.
+- **Sector-wise framework** (`eqcp/sectors.py`, `eqcp/pipelines/sector_analysis.py`,
+  `eqcp/reporting/sector_figures.py` / `sector_report.py`, `eqcp-sectors`, `make sectors`): runs the
+  same AE → CCA spanning probe on each sector and overall, writing `results/sector_analysis/*.csv`,
+  figures, and `reports/sector_analysis_report.md`. Finding: **energy** is the most macro-spanned,
+  then **metals**, then **agriculture** (idiosyncratic).
+- **`main.ipynb`** — a single clean orchestrator notebook (data curation → AE factors → overall
+  macro spanning → sector spanning → forecast-value attribution) with the key importance bar charts,
+  built for the economics team.
+- **Regenerated all downstream artifacts** on the 21-commodity panel: `ae_factors_vanilla.csv`,
+  `results/macro_mapping/*`, `results/forecast_pbsv/*`, figures, and the narrative reports.
+
 ## Added — forecast-PBSV stage (rebuilt from scratch, replaces the deleted forecasting era)
 
 - **`eqcp/forecasting/`**: `ar1.py` (expanding-window direct h-step factor-augmented AR(1),
