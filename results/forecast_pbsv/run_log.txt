@@ -1,0 +1,39 @@
+calendar: T=2870 N=27 (2013-10-21 -> 2026-06-01); train_frac=0.6 -> split at 2021-04-30 (train 1722, OOS 1148 days); COVID crash is IN TRAIN
+staleness: 4 series above zero-frac 0.15: ['Methanol', 'HRCSteel', 'SGXIronOre', 'Lithium'] (headline targets exclude them)
+  AE(leak-free): K=5 activation=relu seed=0 trained on first 1722 days, frozen encode of all 2870
+basis: ridge_m=0.0 (ridge_f=0 pinned) cond(F)=3.6 rho_train=[0.758 0.517 0.343 0.247 0.144]
+basis: rho_cv_train=[0.709 0.431 0.248 0.15  0.003] perm_p=[0.00497512 0.00497512 0.00497512 0.00497512 0.43781095] -> spanned block = cv1..cv1 (weakly-macro-correlated: cv2..cv5)
+basis OOS(frozen): dim  rho_train  rho_cv_train  perm_p_train  rho_oos_frozen  loading_cosine_oos  spanned                       top_loadings_train
+cv1   0.757983      0.708605      0.004975        0.559252            0.889153     True xle(+0.83); inflsw_5y(+0.70); be_5y(+...
+cv2   0.516865      0.431479      0.004975        0.528853            0.953166    False fx_bbdxy(+0.64); fx_audusd(-0.64); fx...
+cv3   0.343034      0.247775      0.004975        0.122432            0.612858    False tips_5y(+0.63); ust_5y(+0.56); tips_1...
+cv4   0.246614      0.149912      0.004975        0.128126            0.527466    False fx_usdbrl(+0.62); ust_10y(-0.25); ig_...
+cv5   0.144468      0.002642      0.437811       -0.046572           -0.488559    False fx_usdnok(+0.33); fx_bbdxy(+0.30); fx...
+basis stability (train bootstrap, n=200): median max principal angle of spanned subspace = 4.6 deg; boundary reproduced in 86% of draws
+h=1: pooled std R2_OOS(full vs AR1)=-0.00116 CW p=0.0020; v_full=-5.194e-07 phi=[ 0. -0. -0. -0. -0.]
+h=5: pooled std R2_OOS(full vs AR1)=-0.00466 CW p=0.8794; v_full=-1.006e-05 phi=[-0. -0. -0. -0. -0.]
+h=21: pooled std R2_OOS(full vs AR1)=-0.00446 CW p=0.9092; v_full=-3.574e-05 phi=[-1.e-05 -1.e-05 -0.e+00 -1.e-05 -1.e-05]
+LOCO CW (h=1): weakest after dropping Diesel: p=0.3742 — pooled significance must survive removing its single most influential commodity
+phi excluding Diesel: [-2.860e-07 -3.157e-07 -2.404e-07 -7.430e-08 -2.982e-07]
+controls arm: v_full -5.194e-07 -> -5.273e-07 with EWMA-vol+12m-momentum in both models
+placebo-calibrated pooled CW: observed stat=2.883, placebo mean=0.000 sd=0.964, empirical p=0.0099
+placebo bands (jointly shifted state, cardinality-matched):
+dim           phi    placebo_lo   placebo_hi  placebo_abs_p95  placebo_p_right  placebo_p_left  outside_band
+cv1  2.386179e-07 -4.180279e-07 1.067908e-07     3.443151e-07         0.019802        0.990099          True
+cv2 -2.677309e-07 -3.962815e-07 1.344303e-07     3.199318e-07         0.881188        0.128713         False
+cv3 -1.196741e-07 -3.030076e-07 2.480876e-08     2.827292e-07         0.405941        0.603960         False
+cv4 -4.358935e-08 -3.637558e-07 1.400074e-07     3.486407e-07         0.227723        0.782178         False
+cv5 -3.270325e-07 -2.888811e-07 8.220058e-08     2.804503e-07         0.990099        0.019802          True
+  AE(leak-free): K=5 activation=relu seed=1 trained on first 1722 days, frozen encode of all 2870
+  AE(leak-free): K=5 activation=relu seed=2 trained on first 1722 days, frozen encode of all 2870
+substitution[none]: v_full=-5.800e-07 (n=1081)
+substitution[only_cv1]: v_full=-8.013e-07 (n=1081)
+substitution[only_cv2]: v_full=+1.204e-07 (n=1081)
+substitution[only_cv3]: v_full=-1.098e-06 (n=1081)
+substitution[only_cv4]: v_full=-7.261e-07 (n=1081)
+substitution[only_cv5]: v_full=+3.287e-07 (n=1081)
+substitution[spanned_block]: v_full=-8.013e-07 (n=1081)
+substitution[weak_block]: v_full=+2.885e-07 (n=1081)
+substitution[all]: v_full=+1.686e-07 (n=1081)
+substitution calendar: macro-available OOS days only; 67 OOS days dropped; gpr/epu lagged 1 day (publication lag); ALL arms share the calendar
+GATE (share-of-gain language): CW p=0.0020 (<0.05: True), LOCO max p=0.3742 (dropping Diesel), placebo-calibrated CW p=0.0099, v_full CI=[-1.77e-06,6.79e-07] excludes 0: False, beats zero: False -> gate_passed=False

@@ -28,7 +28,14 @@ def purged_time_series_folds(
     return folds
 
 
-def purged_cv_canon(F, M, n_folds: int = 5, embargo: int = 10, ridge: float = 0.0) -> np.ndarray:
+def purged_cv_canon(
+    F,
+    M,
+    n_folds: int = 5,
+    embargo: int = 10,
+    ridge: float = 0.0,
+    ridge_f: float | None = None,
+) -> np.ndarray:
     Fa, Ma = _as_array(F), _as_array(M)
     T, K = Fa.shape
     r = min(K, Ma.shape[1])
@@ -42,7 +49,7 @@ def purged_cv_canon(F, M, n_folds: int = 5, embargo: int = 10, ridge: float = 0.
         if len(train) <= K + 1 or len(test) < 3:
             continue
         muF, muM = Fa[train].mean(0), Ma[train].mean(0)
-        _, A, B, _, _, _, _ = linear_cca_full(Fa[train], Ma[train], ridge=ridge)
+        _, A, B, _, _, _, _ = linear_cca_full(Fa[train], Ma[train], ridge=ridge, ridge_f=ridge_f)
         V_te = (Fa[test] - muF) @ A
         U_te = (Ma[test] - muM) @ B
         per_fold.append([_pearson(V_te[:, k], U_te[:, k]) for k in range(r)])
@@ -200,10 +207,20 @@ def perdim_perm_null(score_fn, F, M, n_perm: int, seed: int, r: int) -> np.ndarr
 
 
 def perdim_perm_null_oos(
-    F, M, n_perm: int, seed: int, r: int, n_folds: int, embargo: int, ridge: float
+    F,
+    M,
+    n_perm: int,
+    seed: int,
+    r: int,
+    n_folds: int,
+    embargo: int,
+    ridge: float,
+    ridge_f: float | None = None,
 ) -> np.ndarray:
     def oos_score(f_arr, m_arr):
-        return purged_cv_canon(f_arr, m_arr, n_folds=n_folds, embargo=embargo, ridge=ridge)
+        return purged_cv_canon(
+            f_arr, m_arr, n_folds=n_folds, embargo=embargo, ridge=ridge, ridge_f=ridge_f
+        )
 
     Fa, Ma = _as_array(F), _as_array(M)
     T = Ma.shape[0]

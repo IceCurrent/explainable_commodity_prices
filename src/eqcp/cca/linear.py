@@ -54,8 +54,15 @@ def canonical_correlations(factors: pd.DataFrame, macro: pd.DataFrame) -> np.nda
     return np.clip(s, 0.0, 1.0)
 
 
-def linear_cca_full(F, M, ridge: float = 0.0):
-    """Full ridged linear CCA; ``ridge=0`` reproduces :func:`canonical_correlations`."""
+def linear_cca_full(F, M, ridge: float = 0.0, ridge_f: float | None = None):
+    """Full ridged linear CCA; ``ridge=0`` reproduces :func:`canonical_correlations`.
+
+    ``ridge`` regularizes the macro (second) block; ``ridge_f`` overrides the
+    factor-side ridge (default: same as ``ridge``). Factor-side canonical
+    variates are invariant to invertible linear transforms of the factor block
+    only when the factor side is exactly whitened (``ridge_f=0``) — the frozen
+    attribution basis in :mod:`eqcp.forecasting.basis` relies on this.
+    """
     Fa, Ma = _as_array(F), _as_array(M)
     if Fa.shape[0] != Ma.shape[0]:
         raise ValueError("F and M must be row-aligned before linear_cca_full")
@@ -64,7 +71,7 @@ def linear_cca_full(F, M, ridge: float = 0.0):
     Fc = Fa - Fa.mean(0)
     Mc = Ma - Ma.mean(0)
     Sfm = Fc.T @ Mc / T
-    Sff_isq, _ = _ridged_inv_sqrt_from_data(Fc, ridge)
+    Sff_isq, _ = _ridged_inv_sqrt_from_data(Fc, ridge if ridge_f is None else ridge_f)
     Smm_isq, _ = _ridged_inv_sqrt_from_data(Mc, ridge)
     Omega = Sff_isq @ Sfm @ Smm_isq
     P, s, Qt = np.linalg.svd(Omega, full_matrices=False)

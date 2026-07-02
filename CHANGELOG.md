@@ -1,5 +1,26 @@
 # Changelog — eqcp refactor
 
+## Added — forecast-PBSV stage (rebuilt from scratch, replaces the deleted forecasting era)
+
+- **`eqcp/forecasting/`**: `ar1.py` (expanding-window direct h-step factor-augmented AR(1),
+  all 2^K factor subsets refit per origin via one shared Gram; zero/mean/AR(1) benchmarks;
+  Clark–West with pool-then-HAC cross-sectionally robust inference; staleness diagnostics;
+  Campbell–Thompson-style timing utility), `basis.py` (train-frozen CCA canonical-variate
+  attribution basis; **factor-side ridge pinned to 0** — invariance to invertible factor-block
+  transforms holds only under exact factor-side whitening; degeneracy guard for dead ReLU
+  latents; data-driven spanned|weak boundary; forward OOS rho + loading-drift diagnostics;
+  train-bootstrap subspace stability), `pbsv.py` (exact Shapley, grouped block game,
+  joint-block bootstrap, **cardinality-matched circular-shift placebo bands**, boundary
+  sensitivity).
+- **`eqcp/pipelines/forecast_pbsv(.py|_cli.py)`** (`eqcp-forecast`, `make forecast`),
+  `configs/forecast_pbsv.yaml`, `eqcp/reporting/forecast_figures.py` / `forecast_report.py`.
+- **Design decisions vs the deleted era**: attribution NEVER on raw AE coordinates or
+  per-window sign/permutation alignment; leak-free factor construction (AE + z-stats train-only,
+  frozen); macro-substitution arm on a common macro calendar with gpr/epu lagged one day;
+  pre-registered gate before any share-of-gain language.
+- `linear_cca_full` / `purged_cv_canon` / `perdim_perm_null_oos` gained an optional
+  `ridge_f` override (default preserves old symmetric-ridge behavior exactly).
+
 ## Deleted (forecasting era / orphans)
 
 - `src/rolling_forecast.py`, `forecast_models.py`, `forecast_shapley.py`, `factor_alignment.py`, `factor_extraction.py`, `macro_data.py`

@@ -1,10 +1,12 @@
 # Explainable Commodity Prices
 
-Explaining daily commodity-futures returns with macro variables, in three stages:
+Explaining daily commodity-futures returns with macro variables, in four stages:
 **(1)** compress ~30 commodity return series into 5 latent factors with an autoencoder,
-**(2)** build a clean 37-variable daily macro panel, and
+**(2)** build a clean 37-variable daily macro panel,
 **(3)** test — with canonical correlation analysis and proper out-of-sample/permutation
-inference — whether and how those commodity factors are *spanned* by macro.
+inference — whether and how those commodity factors are *spanned* by macro, and
+**(4)** attribute out-of-sample forecast accuracy of a factor-augmented AR(1) to the
+factor directions via forecast-based Shapley values (PBSV), composed with the macro map.
 
 ## Headline result
 
@@ -33,6 +35,7 @@ pip install -e ".[dev]"
 make macro-panel   # build raw/aligned/stationary macro panel from the workbook
 make mapping       # AE factors <-> macro CCA: OOS rho, null, CIs, bloc map, per-regime, figures, report
 make synthetic     # synthetic ground-truth validation of the CCA probe
+make forecast      # factor-augmented AR(1) forecasts + PBSV attribution + macro substitution
 make all
 ```
 
@@ -43,6 +46,7 @@ Each is offline, deterministic (`--seed`), and reproduces identical outputs acro
 - `src/eqcp/io` — data loaders (commodities, macro)
 - `src/eqcp/factors` — the vanilla autoencoder (encoder activation configurable: `relu` | `linear` | `tanh`)
 - `src/eqcp/cca` — linear & kernel CCA, OOS/permutation/bootstrap inference, bloc reduction, lead/lag
+- `src/eqcp/forecasting` — factor-augmented AR(1) engine, frozen canonical-variate basis, PBSV
 - `src/eqcp/spanning` — spanning regressions + nonlinear (GBT/SHAP) mapping
 - `src/eqcp/synthetic` — known-DGP recovery study
 - `src/eqcp/macro_processing` — workbook → clean panel
@@ -63,6 +67,13 @@ Each is offline, deterministic (`--seed`), and reproduces identical outputs acro
 - `results/macro_mapping/per_regime_summary.csv` — stability across macro regimes R1..R9.
 - `results/macro_mapping/encoder_activation_experiment.csv` — ReLU vs tanh vs linear encoder comparison.
 - `reports/macro_mapping_report.md` — the narrative verdict.
+- `results/forecast_pbsv/` — forecast accuracy vs zero/mean/AR(1) benchmarks, PBSV Shapley
+  tables with bootstrap CIs and cardinality-matched placebo bands, grouped (spanned vs
+  weakly-macro-correlated block) attribution, macro-substitution ladder, seed/basis stability.
+  **Attribution is in the train-frozen CCA canonical-variate basis, never raw AE coordinates**
+  (AE latents are identified only up to invertible affine maps; raw-coordinate attribution is
+  basis-dependent). `reports/forecast_pbsv_report.md` is the narrative verdict with a
+  pre-registered gate on share-of-gain language.
 
 ## Caveats
 

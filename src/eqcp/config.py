@@ -60,6 +60,44 @@ class MacroMappingConfig:
     encoder_activations: tuple[str, ...] = ("relu", "tanh", "linear")
 
 
+@dataclass
+class ForecastPBSVConfig:
+    train_frac: float = 0.6
+    horizons: tuple[int, ...] = (1, 5, 21)
+    headline_horizon: int = 1
+    min_train: int = 60
+    ridge_grid: tuple[float, ...] = (0.0, 1e-3, 1e-2, 1e-1, 1.0)
+    n_folds: int = 5
+    embargo: int = 10
+    n_perm_basis: int = 200
+    n_placebo: int = 100
+    placebo_min_shift: int = 63
+    n_boot: int = 1000
+    n_boot_basis: int = 200
+    mean_block: int = 21
+    burn_in: int = 63
+    spanned_rho_min: float = 0.3
+    spanned_p_max: float = 0.05
+    stale_zero_frac_max: float = 0.15
+    ewma_lambda: float = 0.94
+    momentum_lookback: int = 252
+    utility_gamma: float = 3.0
+    stability_seeds: tuple[int, ...] = (0, 1, 2)
+    lagged_macro_series: tuple[str, ...] = ("gpr", "epu")
+    exclude_commodities: tuple[str, ...] = ()
+    sectors: dict[str, list[str]] = field(default_factory=dict)
+
+
+def load_forecast_pbsv_config(path: Path | None = None) -> ForecastPBSVConfig:
+    data = _load_yaml(path or CONFIG_DIR / "forecast_pbsv.yaml")
+    for key in ("horizons", "ridge_grid", "stability_seeds", "lagged_macro_series"):
+        if key in data:
+            data[key] = tuple(data[key])
+    if "exclude_commodities" in data:
+        data["exclude_commodities"] = tuple(data["exclude_commodities"])
+    return ForecastPBSVConfig(**data)
+
+
 def load_factor_model_config(path: Path | None = None) -> FactorModelConfig:
     data = _load_yaml(path or CONFIG_DIR / "factor_model.yaml")
     return FactorModelConfig(**data)

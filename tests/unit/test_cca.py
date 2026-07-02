@@ -82,9 +82,9 @@ def test_purged_cv_canon_folds_respect_embargo(rng: np.random.Generator):
     bounds = np.linspace(0, n, n_folds + 1).astype(int)
     captured: list[np.ndarray] = []
 
-    def recording_cca(f_train, m_train, ridge=0.0):
+    def recording_cca(f_train, m_train, ridge=0.0, ridge_f=None):
         captured.append(f_train[:, 0].copy())
-        return linear_cca_full(f_train, m_train, ridge=ridge)
+        return linear_cca_full(f_train, m_train, ridge=ridge, ridge_f=ridge_f)
 
     with patch("eqcp.cca.inference.linear_cca_full", side_effect=recording_cca):
         purged_cv_canon(f_arr, m_arr, n_folds=n_folds, embargo=embargo, ridge=0.0)

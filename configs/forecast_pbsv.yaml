@@ -1,0 +1,28 @@
+train_frac: 0.6
+horizons: [1, 5, 21]
+headline_horizon: 1
+min_train: 60
+ridge_grid: [0.0, 0.001, 0.01, 0.1, 1.0]
+n_folds: 5
+embargo: 10
+n_perm_basis: 200
+n_placebo: 100
+placebo_min_shift: 63
+n_boot: 1000
+n_boot_basis: 200
+mean_block: 21
+burn_in: 63
+spanned_rho_min: 0.3
+spanned_p_max: 0.05
+stale_zero_frac_max: 0.15
+ewma_lambda: 0.94
+momentum_lookback: 252
+utility_gamma: 3.0
+stability_seeds: [0, 1, 2]
+lagged_macro_series: [gpr, epu]
+# Panel definition: exchange-traded futures with continuous daily price discovery.
+exclude_commodities: [Diesel, ThermalCoal, Methanol, HRCSteel, SGXIronOre, Lithium]
+sectors:
+  agriculture: [Coffee, SoybeanOil, Corn, Cotton, HRWWheat, LeanHogs, LiveCattle, Soybeans, Sugar]
+  energy: [Brent, WTI, Gasoline, HeatingOil, NaturalGas]
+  metals: [Gold, Silver, Copper, Aluminium, Nickel, Zinc, Platinum]
