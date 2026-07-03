@@ -6,15 +6,31 @@
 
 Setup: leak-free (train-only) AE, split at **2021-04-30** (train_frac=0.6; COVID crash in train), frozen canonical-variate basis (factor-side ridge pinned to 0, macro-side ridge=0.0), headline targets exclude stale series [] (zero-return fraction > 0.15); standardized-loss pooling.
 
+**Horizon ladder (the point of this study).** The same test was run at daily, weekly, monthly and quarterly horizons (h=1, h=5, h=21, h=63). The share-of-gain gate passes at: **NO horizon**. Macro moves commodities contemporaneously (the CCA spanning map), but that content is not converted into out-of-sample forecast power even at monthly/quarterly horizons — the EMH-coherent reading. See the horizon table below.
+
 ## Forecast accuracy (clean panel, standardized pooling)
 
-| horizon | n_origins | effective_n | r2_pool_std_vs_ar1 | r2_pool_std_vs_mean | r2_pool_std_vs_zero | r2_ar1_vs_zero | cw_pool_stat | cw_pool_p | n_cw_fdr10 | utility_gain_ann | sharpe_diff_ann |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 1148 | 1148 | -0.003101 | -0.002346 | -0.002533 | +0.0005667 | +0.4453 | +0.328 | 0 | -0.08507 | -0.1838 |
-| 5 | 1148 | 229 | -0.004812 | -0.008475 | -0.009201 | -0.004368 | -2.696 | +0.9965 | 0 | -0.04719 | -0.2268 |
-| 21 | 1148 | 54 | -0.003379 | -0.01757 | -0.01838 | -0.01495 | -0.4966 | +0.6903 | 0 | -0.009372 | +0.04177 |
+| horizon | n_origins | effective_n | r2_pool_std_vs_ar1 | r2_pool_std_vs_zero | r2_ar1_vs_zero | cw_pool_p | cw_nonoverlap_p | n_cw_fdr10 | utility_gain_ann | sharpe_diff_ann |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 1148 | 1148 | -0.003101 | -0.002533 | +0.0005667 | +0.328 | +0.3347 | 0 | -0.08507 | -0.1838 |
+| 5 | 1148 | 229 | -0.004812 | -0.009201 | -0.004368 | +0.9965 | +0.7642 | 0 | -0.04719 | -0.2268 |
+| 21 | 1148 | 54 | -0.003379 | -0.01838 | -0.01495 | +0.6903 | +0.377 | 0 | -0.009372 | +0.04177 |
+| 63 | 1148 | 18 | -0.002095 | -0.04946 | -0.04727 | +0.0879 | +0.04835 | 0 | -0.0003149 | +0.0689 |
 
-R2_OOS columns compare the full factor model to each benchmark; `r2_ar1_vs_zero` shows whether the AR(1) baseline itself beats doing nothing. `n_cw_fdr10` counts commodities whose per-commodity Clark–West rejects at BH-FDR 10%. h>1 rows use overlapping targets: `effective_n` is the honest sample size and those rows are suggestive only.
+R2_OOS columns compare the full factor model to each benchmark; `r2_ar1_vs_zero` shows whether the AR(1) baseline itself beats doing nothing. `cw_pool_p` uses all (overlapping) origins with a HAC bandwidth >= 2h; `cw_nonoverlap_p` re-runs Clark–West on targets spaced >= h apart (autocorrelation-free but lower power), the honest long-horizon check. `n_cw_fdr10` counts commodities whose per-commodity Clark–West rejects at BH-FDR 10%. `effective_n = n_origins / h` is the honest sample size.
+
+## Macro transmission across horizons
+
+The central question — *do macros move commodities?* — is answered as a function of forecast horizon. For each horizon the full factor state (whose macro-spanned block is identified train-only) is scored against AR(1) out-of-sample, and the macro-substitution arm measures how much of any gain is macro-transmissible (errors-in-variables lower bound). `gate_passed` = the pre-registered share-of-gain gate (pooled CW<0.05, LOCO-robust, placebo-calibrated CW<0.05, v(full) bootstrap CI>0, beats zero).
+
+| horizon | effective_n | r2_oos_vs_ar1 | cw_p_overlap | cw_p_nonoverlap | cw_placebo_p | loco_max_p | v_full_std | phi_spanned | spanned_outside_band | retained_share_spanned | gate_passed |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 1148 | -0.003101 | +0.328 | +0.3347 | +0.2673 | +0.4362 | -1.244e-06 | -2.219e-07 | False | +0.893 | False |
+| 5 | 229 | -0.004812 | +0.9965 | +0.7642 | +1 | +0.9994 | -9.287e-06 | -1.846e-06 | False | +1.076 | False |
+| 21 | 54 | -0.003379 | +0.6903 | +0.377 | +0.6337 | +0.7837 | -2.417e-05 | -8.554e-06 | False | +1.537 | False |
+| 63 | 18 | -0.002095 | +0.0879 | +0.04835 | +0.198 | +0.1577 | -4.523e-05 | -1.153e-05 | False | +0.8844 | False |
+
+`retained_share_spanned` is interpretable only where `gate_passed` is true (otherwise it is a ratio of statistical zeros). `spanned_outside_band` flags whether the spanned-block PBSV clears its cardinality-matched zero-signal placebo band. See `figures/forecast_pbsv/transmission_by_horizon.png` and `results/forecast_pbsv/macro_transmission_by_horizon.csv`.
 
 ## The attribution basis (train-frozen canonical variates)
 
@@ -146,6 +162,7 @@ Raw AE coordinates differ across seeds by optimizer multiplicity plus the ReLU g
 - [x] h=1: Shapley efficiency |sum(phi)-v(full)| < 1e-12 — gap=2.12e-22
 - [x] h=5: Shapley efficiency |sum(phi)-v(full)| < 1e-12 — gap=0.00e+00
 - [x] h=21: Shapley efficiency |sum(phi)-v(full)| < 1e-12 — gap=0.00e+00
+- [x] h=63: Shapley efficiency |sum(phi)-v(full)| < 1e-12 — gap=6.78e-21
 - [x] basis invariance: full-model MSE identical in raw vs CV basis (<1e-8 rel) — rel gap=0.00e+00
 - [x] no-lookahead: forecasts at origins <= 1822 unchanged when later data scrambled — probe origin index 1822 (h=1)
 

@@ -164,10 +164,19 @@ def _accuracy_rows(
     fr_clean = fr.select(clean_idx)
     w_clean = weights[clean_idx]
     cw_pool = clark_west(fr_clean, full_key, AR_KEY, weights=w_clean)
+    # Non-overlapping Clark-West: h>1 targets share h-1 daily returns, so the
+    # overlapping test over-counts information; restricting to targets >= h apart
+    # gives an autocorrelation-free (but lower-power) honest long-horizon check.
+    nonoverlap = fr_clean.nonoverlap_mask()
+    fr_nonoverlap = fr_clean.select_origins(nonoverlap)
+    cw_nonoverlap = clark_west(
+        fr_nonoverlap, full_key, AR_KEY, hac_lags=1, weights=w_clean
+    )
     pooled = {
         "horizon": fr.horizon,
         "n_origins": len(fr.origins),
         "effective_n": len(fr.origins) // fr.horizon,
+        "n_nonoverlap": int(nonoverlap.sum()),
         "hac_lags": default_hac_lags(fr.horizon),
         "r2_pool_std_vs_ar1": r2_oos(fr_clean, full_key, AR_KEY, w_clean),
         "r2_pool_std_vs_mean": r2_oos(fr_clean, full_key, MEAN_KEY, w_clean),
@@ -176,9 +185,76 @@ def _accuracy_rows(
         "r2_ar1_vs_zero": r2_oos(fr_clean, AR_KEY, ZERO_KEY, w_clean),
         "cw_pool_stat": cw_pool[0],
         "cw_pool_p": cw_pool[1],
+        "cw_nonoverlap_stat": cw_nonoverlap[0],
+        "cw_nonoverlap_p": cw_nonoverlap[1],
         "n_cw_fdr10": int(fdr.sum()),
     }
     return df, pooled
+
+
+def _substitution_rows(
+    returns: np.ndarray,
+    state: np.ndarray,
+    oos_start: int,
+    horizon: int,
+    weights: np.ndarray,
+    stale: np.ndarray,
+    macro_avail: np.ndarray,
+    u_arr: np.ndarray,
+    rho_proxy: np.ndarray,
+    groups: list[tuple[int, ...]],
+    min_train: int,
+) -> pd.DataFrame:
+    """Macro-substitution ladder for one horizon (the 'explained by macro' arm).
+
+    Each arm replaces the listed canonical directions ``v_k`` by their
+    train-fitted macro proxy ``rho_k * u_k`` (errors-in-variables lower bound on
+    macro-transmissibility) and reruns the AR(1)-vs-full game on the shared
+    macro-available calendar. ``retained_share_vs_none`` is v(arm)/v(none).
+    """
+    K = state.shape[1]
+    full_key = tuple(range(K))
+    clean = np.where(~stale)[0]
+
+    def substituted_state(sub_dims: tuple[int, ...]) -> np.ndarray:
+        s = state.copy()
+        for k in sub_dims:
+            s[:, k] = rho_proxy[k] * u_arr[:, k]
+        return s
+
+    arms: list[tuple[str, tuple[int, ...]]] = [("none", ())]
+    arms += [(f"only_cv{k + 1}", (k,)) for k in range(K)]
+    arms += [("spanned_block", groups[0]), ("weak_block", groups[1]), ("all", full_key)]
+
+    rows: list[dict] = []
+    v_none: float | None = None
+    for name, sub_dims in arms:
+        fr_a = expanding_subset_forecasts(
+            returns,
+            substituted_state(sub_dims),
+            oos_start,
+            horizon=horizon,
+            subsets=[AR_KEY, full_key],
+            available=macro_avail,
+            min_train=min_train,
+        )
+        v_a = fr_a.mse(AR_KEY, weights) - fr_a.mse(full_key, weights)
+        cw_a = clark_west(fr_a.select(clean), full_key, AR_KEY, weights=weights[clean])
+        if name == "none":
+            v_none = v_a
+        retained = v_a / v_none if (v_none is not None and v_none != 0.0) else np.nan
+        rows.append(
+            {
+                "horizon": horizon,
+                "arm": name,
+                "substituted_dims": ".".join(str(k + 1) for k in sub_dims) or "-",
+                "v_full_std": v_a,
+                "retained_share_vs_none": retained,
+                "cw_p": cw_a[1],
+                "n_origins": len(fr_a.origins),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def run_forecast_pbsv(args: argparse.Namespace) -> None:
@@ -279,14 +355,43 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         )
     )
 
+    # ----------------------------------- shared macro-substitution inputs
+    # Horizon-independent: the frozen macro-side canonical variates on the
+    # returns calendar (publication-lagged), used by every horizon's
+    # substitution ladder so all arms share one macro-available calendar.
+    M_sub = M_full.copy()
+    for col in cfg.lagged_macro_series:
+        if col in M_sub.columns:
+            M_sub[col] = M_sub[col].shift(1)
+    M_sub = M_sub.dropna(how="any")
+    U = basis.macro_variates(M_sub).reindex(dates)
+    macro_avail = U.notna().all(axis=1).to_numpy()
+    U_arr = np.nan_to_num(U.to_numpy(float), nan=0.0)
+    rho_proxy = basis.rho_train  # train-scale for the EIV proxy rho_k * u_k
+    n_dropped = int((~macro_avail[oos_start:]).sum())
+
+    clean_idx = np.where(~stale)[0]
+    vol = ewma_vol(returns, cfg.ewma_lambda)
+    h0 = cfg.headline_horizon
+    attr_horizons = [
+        h for h in cfg.horizons if h in set(cfg.attribution_horizons) or h == h0
+    ]
+
     # ------------------------------------------------------------ main runs
+    # Every horizon (daily / weekly / monthly / quarterly) gets the full
+    # macro-transmission bundle: accuracy, exact PBSV, placebo band, LOCO,
+    # gate, and the macro-substitution ladder — so the question "do macros move
+    # commodities?" is answered as a function of forecast horizon, not only h=1.
     accuracy_rows: list[pd.DataFrame] = []
     pooled_rows: list[dict] = []
     shapley_rows: list[pd.DataFrame] = []
     grouped_rows: list[dict] = []
     boundary_rows: list[dict] = []
+    transmission_rows: list[dict] = []
+    substitution_rows: list[pd.DataFrame] = []
     fr_headline: SubsetForecasts | None = None
     weights_by_h: dict[int, np.ndarray] = {}
+    head_ctx: dict = {}
 
     for h in cfg.horizons:
         y_h = h_period_returns(returns, h)
@@ -299,9 +404,8 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         acc.insert(0, "horizon", h)
         accuracy_rows.append(acc)
 
-        vol = ewma_vol(returns, cfg.ewma_lambda)
         ugain, sdiff = timing_utility_gain(
-            fr.select(np.where(~stale)[0]),
+            fr.select(clean_idx),
             full_key,
             AR_KEY,
             vol[:, ~stale],
@@ -320,13 +424,11 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
             seed=seed,
         )
         pooled["v_full_std"] = res_p["v_full"]
-        pooled["v_full_boot_lo"] = float(
-            np.percentile(boot["phi_draws"].sum(axis=1), 2.5)
-        )
-        pooled["v_full_boot_hi"] = float(
-            np.percentile(boot["phi_draws"].sum(axis=1), 97.5)
-        )
-        pooled_rows.append(pooled)
+        pooled["v_full_boot_lo"] = float(np.percentile(boot["phi_draws"].sum(axis=1), 2.5))
+        pooled["v_full_boot_hi"] = float(np.percentile(boot["phi_draws"].sum(axis=1), 97.5))
+        pooled.setdefault("cw_placebo_p", np.nan)
+        pooled.setdefault("cw_loco_max_p", np.nan)
+        pooled.setdefault("gate_passed", False)
 
         mse_ar_std = fr.mse(AR_KEY, weights)
         sh = pd.DataFrame(
@@ -366,6 +468,136 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         acceptance.append(
             (f"h={h}: Shapley efficiency |sum(phi)-v(full)| < 1e-12", eff < 1e-12, f"gap={eff:.2e}")
         )
+
+        # ---------- per-horizon macro-transmission bundle (placebo/LOCO/gate/sub)
+        if h in attr_horizons:
+
+            def _placebo_cw(fr_b: SubsetForecasts, _w: np.ndarray = weights) -> float:
+                return clark_west(
+                    fr_b.select(clean_idx), full_key, AR_KEY, weights=_w[clean_idx]
+                )[0]
+
+            plc = placebo_pbsv(
+                returns,
+                state,
+                oos_start,
+                horizon=h,
+                weights=weights,
+                groups=groups,
+                min_train=cfg.min_train,
+                n_placebo=cfg.n_placebo,
+                min_shift=cfg.placebo_min_shift,
+                seed=seed,
+                stat_fn=_placebo_cw,
+            )
+            cw_placebo_p = float(
+                (1 + np.sum(plc["stat_draws"] >= pooled["cw_pool_stat"]))
+                / (len(plc["stat_draws"]) + 1)
+            )
+
+            loco_rows = []
+            for drop_i in clean_idx:
+                keep = np.array([i for i in clean_idx if i != drop_i])
+                st_i, p_i = clark_west(fr.select(keep), full_key, AR_KEY, weights=weights[keep])
+                loco_rows.append({"dropped": commodities[drop_i], "cw_stat": st_i, "cw_p": p_i})
+            loco = pd.DataFrame(loco_rows).sort_values("cw_p", ascending=False).reset_index(
+                drop=True
+            )
+            loco_max_p = float(loco["cw_p"].iloc[0])
+            loco_max_name = str(loco["dropped"].iloc[0])
+
+            sub_h = _substitution_rows(
+                returns, state, oos_start, h, weights, stale, macro_avail, U_arr, rho_proxy,
+                groups, cfg.min_train,
+            )
+            substitution_rows.append(sub_h)
+
+            gate_h = bool(
+                (pooled["cw_pool_p"] < 0.05)
+                and (loco_max_p < 0.05)
+                and (cw_placebo_p < 0.05)
+                and (pooled["v_full_boot_lo"] > 0)
+                and (pooled["r2_pool_std_vs_zero"] > 0)
+            )
+            pooled["cw_placebo_p"] = cw_placebo_p
+            pooled["cw_loco_max_p"] = loco_max_p
+            pooled["gate_passed"] = gate_h
+
+            def _sub(arm: str, col: str) -> float:
+                return float(sub_h.loc[sub_h["arm"] == arm, col].iloc[0])
+
+            transmission_rows.append(
+                {
+                    "horizon": h,
+                    "effective_n": pooled["effective_n"],
+                    "n_nonoverlap": pooled["n_nonoverlap"],
+                    "r2_oos_vs_ar1": pooled["r2_pool_std_vs_ar1"],
+                    "r2_oos_vs_zero": pooled["r2_pool_std_vs_zero"],
+                    "cw_p_overlap": pooled["cw_pool_p"],
+                    "cw_p_nonoverlap": pooled["cw_nonoverlap_p"],
+                    "cw_placebo_p": cw_placebo_p,
+                    "loco_max_p": loco_max_p,
+                    "v_full_std": res_p["v_full"],
+                    "v_full_boot_lo": pooled["v_full_boot_lo"],
+                    "v_full_boot_hi": pooled["v_full_boot_hi"],
+                    "phi_spanned": float(res_p["phi_grouped"][0]),
+                    "phi_weak": float(res_p["phi_grouped"][1]),
+                    "spanned_placebo_hi": float(plc["phi_grouped_hi"][0]),
+                    "spanned_outside_band": bool(
+                        res_p["phi_grouped"][0] > plc["phi_grouped_hi"][0]
+                    ),
+                    "retained_share_spanned": _sub("spanned_block", "retained_share_vs_none"),
+                    "retained_share_all": _sub("all", "retained_share_vs_none"),
+                    "sub_cw_p_all": _sub("all", "cw_p"),
+                    "gate_passed": gate_h,
+                }
+            )
+            log(
+                f"h={h} transmission: R2_OOS(full vs AR1)={pooled['r2_pool_std_vs_ar1']:+.5f} "
+                f"CW p(overlap)={pooled['cw_pool_p']:.4f} p(non-overlap)="
+                f"{pooled['cw_nonoverlap_p']:.4f} LOCO max p={loco_max_p:.4f} "
+                f"placebo-CW p={cw_placebo_p:.4f} -> gate={gate_h}"
+            )
+
+            if h == h0:
+                res_head = res_p
+                n_plc = plc["phi_draws"].shape[0]
+                p_right = (1 + (plc["phi_draws"] >= res_head["phi"][None, :]).sum(0)) / (n_plc + 1)
+                p_left = (1 + (plc["phi_draws"] <= res_head["phi"][None, :]).sum(0)) / (n_plc + 1)
+                w_loco = weights.copy()
+                w_loco[commodities.index(loco_max_name)] = 0.0
+                head_ctx = {
+                    "plc_df": pd.DataFrame(
+                        {
+                            "dim": [f"cv{k + 1}" for k in range(K)],
+                            "phi": res_head["phi"],
+                            "placebo_lo": plc["phi_lo"],
+                            "placebo_hi": plc["phi_hi"],
+                            "placebo_abs_p95": plc["abs_p95"],
+                            "placebo_p_right": p_right,
+                            "placebo_p_left": p_left,
+                            "outside_band": (res_head["phi"] < plc["phi_lo"])
+                            | (res_head["phi"] > plc["phi_hi"]),
+                        }
+                    ),
+                    "plc_grouped": pd.DataFrame(
+                        {
+                            "group": ["spanned", "weak"],
+                            "phi": res_head["phi_grouped"],
+                            "placebo_lo": plc["phi_grouped_lo"],
+                            "placebo_hi": plc["phi_grouped_hi"],
+                            "outside_band": (res_head["phi_grouped"] < plc["phi_grouped_lo"])
+                            | (res_head["phi_grouped"] > plc["phi_grouped_hi"]),
+                        }
+                    ),
+                    "cw_placebo_p": cw_placebo_p,
+                    "loco": loco,
+                    "loco_max_p": loco_max_p,
+                    "loco_max_name": loco_max_name,
+                    "phi_loco": pbsv(fr, weights=w_loco, groups=groups)["phi"],
+                }
+
+        pooled_rows.append(pooled)
         log(
             f"h={h}: pooled std R2_OOS(full vs AR1)={pooled['r2_pool_std_vs_ar1']:+.5f} "
             f"CW p={pooled['cw_pool_p']:.4f}; v_full={res_p['v_full']:+.3e} "
@@ -376,33 +608,39 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
             fr_headline = fr
 
     assert fr_headline is not None
-    h0 = cfg.headline_horizon
     w0 = weights_by_h[h0]
+    loco = head_ctx["loco"]
+    loco_max_p = head_ctx["loco_max_p"]
+    loco_max_name = head_ctx["loco_max_name"]
+    phi_loco = head_ctx["phi_loco"]
+    plc_df = head_ctx["plc_df"]
+    plc_grouped = head_ctx["plc_grouped"]
+    cw_placebo_p = head_ctx["cw_placebo_p"]
 
     pd.concat(accuracy_rows).to_csv(res / "forecast_accuracy.csv", index=False)
     pd.concat(shapley_rows).to_csv(res / "pbsv_shapley.csv", index=False)
     pd.DataFrame(grouped_rows).to_csv(res / "pbsv_grouped.csv", index=False)
     pd.DataFrame(boundary_rows).to_csv(res / "pbsv_boundary_sensitivity.csv", index=False)
 
-    # --------------------------------------- signal concentration (LOCO CW)
-    clean_idx = np.where(~stale)[0]
-    loco_rows = []
-    for drop_i in clean_idx:
-        keep = np.array([i for i in clean_idx if i != drop_i])
-        stat_i, p_i = clark_west(fr_headline.select(keep), full_key, AR_KEY, weights=w0[keep])
-        loco_rows.append({"dropped": commodities[drop_i], "cw_stat": stat_i, "cw_p": p_i})
-    loco = pd.DataFrame(loco_rows).sort_values("cw_p", ascending=False).reset_index(drop=True)
-    loco.to_csv(res / "cw_leave_one_out.csv", index=False)
-    loco_max_p = float(loco["cw_p"].iloc[0])
-    loco_max_name = str(loco["dropped"].iloc[0])
-    log(
-        f"LOCO CW (h={h0}): weakest after dropping {loco_max_name}: p={loco_max_p:.4f} — "
-        "pooled significance must survive removing its single most influential commodity"
+    sub_df_all = pd.concat(substitution_rows, ignore_index=True)
+    sub_df_all.to_csv(res / "macro_substitution.csv", index=False)
+    sub_df = sub_df_all[sub_df_all["horizon"] == h0].drop(columns=["horizon"]).reset_index(
+        drop=True
     )
-    w_loco = w0.copy()
-    w_loco[commodities.index(loco_max_name)] = 0.0
-    phi_loco = pbsv(fr_headline, weights=w_loco, groups=groups)["phi"]
-    log(f"phi excluding {loco_max_name}: {np.round(phi_loco, 10)}")
+    transmission = pd.DataFrame(transmission_rows)
+    transmission.to_csv(res / "macro_transmission_by_horizon.csv", index=False)
+    gate_horizons = [int(h) for h in transmission.loc[transmission["gate_passed"], "horizon"]]
+    log(
+        "macro-transmission ladder written; share-of-gain gate passes at horizons "
+        f"{gate_horizons if gate_horizons else 'NONE'} (of {list(cfg.horizons)})"
+    )
+
+    # Headline leave-one-commodity-out table (computed in the loop above).
+    loco.to_csv(res / "cw_leave_one_out.csv", index=False)
+    log(
+        f"LOCO CW (h={h0}): weakest after dropping {loco_max_name}: p={loco_max_p:.4f}; "
+        f"phi excluding {loco_max_name}: {np.round(phi_loco, 10)}"
+    )
 
     # ------------------------------------------------ robustness on headline h
     per_comm_phi = pbsv_per_commodity(fr_headline)
@@ -455,64 +693,11 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         f"{res_ctrl['v_full']:+.3e} with EWMA-vol+12m-momentum in both models"
     )
 
-    # ------------------------------------------------------------- placebo
-    def _placebo_cw(fr_b: SubsetForecasts) -> float:
-        return clark_west(fr_b.select(clean_idx), full_key, AR_KEY, weights=w0[clean_idx])[0]
-
-    plc = placebo_pbsv(
-        returns,
-        state,
-        oos_start,
-        horizon=h0,
-        weights=w0,
-        groups=groups,
-        min_train=cfg.min_train,
-        n_placebo=cfg.n_placebo,
-        min_shift=cfg.placebo_min_shift,
-        seed=seed,
-        stat_fn=_placebo_cw,
-    )
-    res_head = pbsv(fr_headline, weights=w0, groups=groups)
-    n_plc = plc["phi_draws"].shape[0]
-    p_right = (1 + (plc["phi_draws"] >= res_head["phi"][None, :]).sum(0)) / (n_plc + 1)
-    p_left = (1 + (plc["phi_draws"] <= res_head["phi"][None, :]).sum(0)) / (n_plc + 1)
-    plc_df = pd.DataFrame(
-        {
-            "dim": [f"cv{k + 1}" for k in range(K)],
-            "phi": res_head["phi"],
-            "placebo_lo": plc["phi_lo"],
-            "placebo_hi": plc["phi_hi"],
-            "placebo_abs_p95": plc["abs_p95"],
-            "placebo_p_right": p_right,
-            "placebo_p_left": p_left,
-            "outside_band": (res_head["phi"] < plc["phi_lo"]) | (res_head["phi"] > plc["phi_hi"]),
-        }
-    )
-    head_cw_stat = float(
-        next(p["cw_pool_stat"] for p in pooled_rows if p["horizon"] == h0)
-    )
-    cw_placebo_p = float(
-        (1 + np.sum(plc["stat_draws"] >= head_cw_stat)) / (len(plc["stat_draws"]) + 1)
-    )
-    log(
-        f"placebo-calibrated pooled CW: observed stat={head_cw_stat:.3f}, "
-        f"placebo mean={plc['stat_draws'].mean():.3f} sd={plc['stat_draws'].std():.3f}, "
-        f"empirical p={cw_placebo_p:.4f}"
-    )
-    plc_grouped = pd.DataFrame(
-        {
-            "group": ["spanned", "weak"],
-            "phi": res_head["phi_grouped"],
-            "placebo_lo": plc["phi_grouped_lo"],
-            "placebo_hi": plc["phi_grouped_hi"],
-            "outside_band": (res_head["phi_grouped"] < plc["phi_grouped_lo"])
-            | (res_head["phi_grouped"] > plc["phi_grouped_hi"]),
-        }
-    )
+    # Headline placebo bands (jointly shifted state, cardinality-matched),
+    # computed inside the horizon loop and captured via head_ctx.
     plc_df.to_csv(res / "pbsv_placebo.csv", index=False)
     plc_grouped.to_csv(res / "pbsv_placebo_grouped.csv", index=False)
-    log("placebo bands (jointly shifted state, cardinality-matched):")
-    log(plc_df.to_string(index=False))
+    log(f"headline placebo-calibrated pooled CW p={cw_placebo_p:.4f}")
 
     # ------------------------------------------- raw-basis diagnostic + seeds
     f_sd = F.iloc[:t_split].std(ddof=0).to_numpy()
@@ -601,62 +786,8 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
     pd.DataFrame(seed_rows).to_csv(res / "seed_stability.csv", index=False)
     pd.DataFrame(raw_phi_rows).to_csv(res / "pbsv_raw_basis_by_seed.csv", index=False)
 
-    # ------------------------------------------------------ substitution arm
-    M_sub = M_full.copy()
-    for col in cfg.lagged_macro_series:
-        if col in M_sub.columns:
-            M_sub[col] = M_sub[col].shift(1)
-    M_sub = M_sub.dropna(how="any")
-    U = basis.macro_variates(M_sub)
-    U = U.reindex(dates)
-    macro_avail = U.notna().all(axis=1).to_numpy()
-    rho_proxy = basis.rho_train  # train-scale for the EIV proxy rho_k * u_k
-    U_arr = np.nan_to_num(U.to_numpy(float), nan=0.0)
-
-    def substituted_state(sub_dims: tuple[int, ...]) -> np.ndarray:
-        s = state.copy()
-        for k in sub_dims:
-            s[:, k] = rho_proxy[k] * U_arr[:, k]
-        return s
-
-    arms: list[tuple[str, tuple[int, ...]]] = [("none", ())]
-    arms += [(f"only_cv{k + 1}", (k,)) for k in range(K)]
-    arms += [
-        ("spanned_block", groups[0]),
-        ("weak_block", groups[1]),
-        ("all", full_key),
-    ]
-    sub_rows = []
-    v_none = None
-    for name, sub_dims in arms:
-        fr_a = expanding_subset_forecasts(
-            returns,
-            substituted_state(sub_dims),
-            oos_start,
-            horizon=h0,
-            subsets=[AR_KEY, full_key],
-            available=macro_avail,
-            min_train=cfg.min_train,
-        )
-        v_a = fr_a.mse(AR_KEY, w0) - fr_a.mse(full_key, w0)
-        cw_a = clark_west(fr_a.select(np.where(~stale)[0]), full_key, AR_KEY, weights=w0[~stale])
-        if name == "none":
-            v_none = v_a
-        retained = v_a / v_none if (v_none is not None and v_none != 0.0) else np.nan
-        sub_rows.append(
-            {
-                "arm": name,
-                "substituted_dims": ".".join(str(k + 1) for k in sub_dims) or "-",
-                "v_full_std": v_a,
-                "retained_share_vs_none": retained,
-                "cw_p": cw_a[1],
-                "n_origins": len(fr_a.origins),
-            }
-        )
-        log(f"substitution[{name}]: v_full={v_a:+.3e} (n={len(fr_a.origins)})")
-    sub_df = pd.DataFrame(sub_rows)
-    sub_df.to_csv(res / "macro_substitution.csv", index=False)
-    n_dropped = int((~macro_avail[oos_start:]).sum())
+    # The macro-substitution ladder (all horizons) was computed in the loop and
+    # written to macro_substitution.csv; the headline slice is `sub_df`.
     log(
         f"substitution calendar: macro-available OOS days only; {n_dropped} OOS days dropped; "
         f"gpr/epu lagged 1 day (publication lag); ALL arms share the calendar"
@@ -694,25 +825,22 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
     )
 
     # ------------------------------------------------------------------ gate
+    # The per-horizon gate (share-of-gain language) was decided in the loop and
+    # lives in pooled_df["gate_passed"]; the headline gate drives the verdict.
     pooled_df = pd.DataFrame(pooled_rows)
-    pooled_df["cw_placebo_p"] = np.where(pooled_df["horizon"] == h0, cw_placebo_p, np.nan)
-    pooled_df["cw_loco_max_p"] = np.where(pooled_df["horizon"] == h0, loco_max_p, np.nan)
     pooled_df.to_csv(res / "forecast_accuracy_pooled.csv", index=False)
     head = pooled_df[pooled_df["horizon"] == h0].iloc[0]
-    gate = (
-        (head["cw_pool_p"] < 0.05)
-        and (loco_max_p < 0.05)
-        and (cw_placebo_p < 0.05)
-        and (head["v_full_boot_lo"] > 0)
-        and (head["r2_pool_std_vs_zero"] > 0)
-    )
+    gate = bool(head["gate_passed"])
     log(
-        f"GATE (share-of-gain language): CW p={head['cw_pool_p']:.4f} (<0.05: "
-        f"{head['cw_pool_p'] < 0.05}), LOCO max p={loco_max_p:.4f} (dropping {loco_max_name}), "
-        f"placebo-calibrated CW p={cw_placebo_p:.4f}, "
+        f"GATE (share-of-gain, h={h0}): CW p={head['cw_pool_p']:.4f}, LOCO max p={loco_max_p:.4f} "
+        f"(dropping {loco_max_name}), placebo-calibrated CW p={cw_placebo_p:.4f}, "
         f"v_full CI=[{head['v_full_boot_lo']:.2e},{head['v_full_boot_hi']:.2e}] excludes 0: "
         f"{head['v_full_boot_lo'] > 0}, beats zero: {head['r2_pool_std_vs_zero'] > 0} "
-        f"-> gate_passed={gate}"
+        f"-> gate_passed={gate}. Gate across horizons: "
+        + ", ".join(
+            f"h={int(r['horizon'])}:{bool(r['gate_passed'])}"
+            for _, r in transmission.iterrows()
+        )
     )
 
     make_forecast_figures(
@@ -725,6 +853,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
             per_comm_phi, index=commodities, columns=[f"cv{k + 1}" for k in range(K)]
         ),
         substitution=sub_df,
+        transmission=transmission,
         headline_horizon=h0,
     )
 
@@ -743,6 +872,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         placebo_grouped=plc_grouped,
         controls=pd.read_csv(res / "pbsv_controls.csv"),
         substitution=sub_df,
+        transmission=transmission,
         seed_stability=pd.DataFrame(seed_rows),
         raw_phi=pd.DataFrame(raw_phi_rows),
         accuracy=pd.concat(accuracy_rows),

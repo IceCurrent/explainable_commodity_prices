@@ -10,30 +10,19 @@ cv3   0.354121      0.271913      0.004975        0.132345            0.796380  
 cv4   0.224815      0.139179      0.004975        0.089999            0.108285    False fx_usdbrl(+0.66); ig_oas(-0.23); fx_u...
 cv5   0.157712     -0.001384      0.517413        0.008514            0.471656    False bdiy(+0.31); ig_oas(-0.29); ovx(-0.27...
 basis stability (train bootstrap, n=200): median max principal angle of spanned subspace = 5.6 deg; boundary reproduced in 82% of draws
+h=1 transmission: R2_OOS(full vs AR1)=-0.00310 CW p(overlap)=0.3280 p(non-overlap)=0.3347 LOCO max p=0.4362 placebo-CW p=0.2673 -> gate=False
 h=1: pooled std R2_OOS(full vs AR1)=-0.00310 CW p=0.3280; v_full=-1.244e-06 phi=[-0. -0. -0.  0. -0.]
+h=5 transmission: R2_OOS(full vs AR1)=-0.00481 CW p(overlap)=0.9965 p(non-overlap)=0.7642 LOCO max p=0.9994 placebo-CW p=1.0000 -> gate=False
 h=5: pooled std R2_OOS(full vs AR1)=-0.00481 CW p=0.9965; v_full=-9.287e-06 phi=[-0. -0. -0. -0. -0.]
+h=21 transmission: R2_OOS(full vs AR1)=-0.00338 CW p(overlap)=0.6903 p(non-overlap)=0.3770 LOCO max p=0.7837 placebo-CW p=0.6337 -> gate=False
 h=21: pooled std R2_OOS(full vs AR1)=-0.00338 CW p=0.6903; v_full=-2.417e-05 phi=[-1.e-05 -1.e-05 -0.e+00 -1.e-05 -0.e+00]
-LOCO CW (h=1): weakest after dropping Aluminium: p=0.4362 — pooled significance must survive removing its single most influential commodity
-phi excluding Aluminium: [-2.067e-07 -4.446e-07 -2.353e-07  1.861e-07 -5.868e-07]
+h=63 transmission: R2_OOS(full vs AR1)=-0.00209 CW p(overlap)=0.0879 p(non-overlap)=0.0483 LOCO max p=0.1577 placebo-CW p=0.1980 -> gate=False
+h=63: pooled std R2_OOS(full vs AR1)=-0.00209 CW p=0.0879; v_full=-4.523e-05 phi=[-1.e-05 -1.e-05  0.e+00 -2.e-05 -1.e-05]
+macro-transmission ladder written; share-of-gain gate passes at horizons NONE (of [1, 5, 21, 63])
+LOCO CW (h=1): weakest after dropping Aluminium: p=0.4362; phi excluding Aluminium: [-2.067e-07 -4.446e-07 -2.353e-07  1.861e-07 -5.868e-07]
 controls arm: v_full -1.244e-06 -> -1.279e-06 with EWMA-vol+12m-momentum in both models
-placebo-calibrated pooled CW: observed stat=0.445, placebo mean=-0.113 sd=0.971, empirical p=0.2673
-placebo bands (jointly shifted state, cardinality-matched):
-dim           phi    placebo_lo   placebo_hi  placebo_abs_p95  placebo_p_right  placebo_p_left  outside_band
-cv1 -2.038228e-07 -3.947439e-07 8.981149e-08     3.547474e-07         0.752475        0.257426         False
-cv2 -4.789371e-07 -3.828094e-07 1.065006e-07     3.356061e-07         1.000000        0.009901          True
-cv3 -1.694771e-07 -3.219236e-07 8.183035e-08     3.119528e-07         0.623762        0.386139         False
-cv4  2.056397e-07 -3.428580e-07 1.005793e-07     3.222999e-07         0.009901        1.000000          True
-cv5 -5.977124e-07 -3.778099e-07 1.425615e-07     3.504217e-07         1.000000        0.009901          True
+headline placebo-calibrated pooled CW p=0.2673
   AE(leak-free): K=5 activation=relu seed=1 trained on first 1722 days, frozen encode of all 2870
   AE(leak-free): K=5 activation=relu seed=2 trained on first 1722 days, frozen encode of all 2870
-substitution[none]: v_full=-1.416e-06 (n=1081)
-substitution[only_cv1]: v_full=-1.264e-06 (n=1081)
-substitution[only_cv2]: v_full=-2.633e-07 (n=1081)
-substitution[only_cv3]: v_full=-1.760e-06 (n=1081)
-substitution[only_cv4]: v_full=-1.915e-06 (n=1081)
-substitution[only_cv5]: v_full=-8.085e-07 (n=1081)
-substitution[spanned_block]: v_full=-1.264e-06 (n=1081)
-substitution[weak_block]: v_full=-5.930e-07 (n=1081)
-substitution[all]: v_full=-6.902e-07 (n=1081)
 substitution calendar: macro-available OOS days only; 67 OOS days dropped; gpr/epu lagged 1 day (publication lag); ALL arms share the calendar
-GATE (share-of-gain language): CW p=0.3280 (<0.05: False), LOCO max p=0.4362 (dropping Aluminium), placebo-calibrated CW p=0.2673, v_full CI=[-2.62e-06,3.91e-08] excludes 0: False, beats zero: False -> gate_passed=False
+GATE (share-of-gain, h=1): CW p=0.3280, LOCO max p=0.4362 (dropping Aluminium), placebo-calibrated CW p=0.2673, v_full CI=[-2.62e-06,3.91e-08] excludes 0: False, beats zero: False -> gate_passed=False. Gate across horizons: h=1:False, h=5:False, h=21:False, h=63:False

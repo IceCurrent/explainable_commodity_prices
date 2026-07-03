@@ -40,6 +40,7 @@ def write_forecast_report(
     placebo_grouped: pd.DataFrame,
     controls: pd.DataFrame,
     substitution: pd.DataFrame,
+    transmission: pd.DataFrame,
     seed_stability: pd.DataFrame,
     raw_phi: pd.DataFrame,
     accuracy: pd.DataFrame,
@@ -101,6 +102,21 @@ def write_forecast_report(
         f"(zero-return fraction > {cfg.stale_zero_frac_max}); standardized-loss pooling."
     )
     a("")
+    gate_h = [int(r["horizon"]) for _, r in transmission.iterrows() if bool(r["gate_passed"])]
+    horizons_txt = ", ".join(f"h={int(h)}" for h in transmission["horizon"])
+    a(
+        f"**Horizon ladder (the point of this study).** The same test was run at daily, weekly, "
+        f"monthly and quarterly horizons ({horizons_txt}). The share-of-gain gate passes at: "
+        f"**{('; '.join(f'h={h}' for h in gate_h)) if gate_h else 'NO horizon'}**. "
+        + (
+            "Macro moves commodities contemporaneously (the CCA spanning map), but that content "
+            "is not converted into out-of-sample forecast power even at monthly/quarterly "
+            "horizons — the EMH-coherent reading. See the horizon table below."
+            if not gate_h
+            else "See the horizon table below for where and how much."
+        )
+    )
+    a("")
 
     a("## Forecast accuracy (clean panel, standardized pooling)")
     a("")
@@ -109,11 +125,10 @@ def write_forecast_report(
         "n_origins",
         "effective_n",
         "r2_pool_std_vs_ar1",
-        "r2_pool_std_vs_mean",
         "r2_pool_std_vs_zero",
         "r2_ar1_vs_zero",
-        "cw_pool_stat",
         "cw_pool_p",
+        "cw_nonoverlap_p",
         "n_cw_fdr10",
         "utility_gain_ann",
         "sharpe_diff_ann",
@@ -122,9 +137,48 @@ def write_forecast_report(
     a("")
     a(
         "R2_OOS columns compare the full factor model to each benchmark; `r2_ar1_vs_zero` shows "
-        "whether the AR(1) baseline itself beats doing nothing. `n_cw_fdr10` counts commodities "
-        "whose per-commodity Clark–West rejects at BH-FDR 10%. h>1 rows use overlapping targets: "
-        "`effective_n` is the honest sample size and those rows are suggestive only."
+        "whether the AR(1) baseline itself beats doing nothing. `cw_pool_p` uses all "
+        "(overlapping) origins with a HAC bandwidth >= 2h; `cw_nonoverlap_p` re-runs Clark–West "
+        "on targets spaced >= h apart (autocorrelation-free but lower power), the honest "
+        "long-horizon check. `n_cw_fdr10` counts commodities whose per-commodity Clark–West "
+        "rejects at BH-FDR 10%. `effective_n = n_origins / h` is the honest sample size."
+    )
+    a("")
+
+    a("## Macro transmission across horizons")
+    a("")
+    a(
+        "The central question — *do macros move commodities?* — is answered as a function of "
+        "forecast horizon. For each horizon the full factor state (whose macro-spanned block is "
+        "identified train-only) is scored against AR(1) out-of-sample, and the "
+        "macro-substitution arm measures how much of any gain is macro-transmissible "
+        "(errors-in-variables lower bound). `gate_passed` = the pre-registered share-of-gain "
+        "gate (pooled CW<0.05, LOCO-robust, placebo-calibrated CW<0.05, v(full) bootstrap CI>0, "
+        "beats zero)."
+    )
+    a("")
+    tr_cols = [
+        "horizon",
+        "effective_n",
+        "r2_oos_vs_ar1",
+        "cw_p_overlap",
+        "cw_p_nonoverlap",
+        "cw_placebo_p",
+        "loco_max_p",
+        "v_full_std",
+        "phi_spanned",
+        "spanned_outside_band",
+        "retained_share_spanned",
+        "gate_passed",
+    ]
+    a(_md_table(transmission[tr_cols]))
+    a("")
+    a(
+        "`retained_share_spanned` is interpretable only where `gate_passed` is true (otherwise it "
+        "is a ratio of statistical zeros). `spanned_outside_band` flags whether the "
+        "spanned-block PBSV clears its cardinality-matched zero-signal placebo band. See "
+        "`figures/forecast_pbsv/transmission_by_horizon.png` and "
+        "`results/forecast_pbsv/macro_transmission_by_horizon.csv`."
     )
     a("")
 

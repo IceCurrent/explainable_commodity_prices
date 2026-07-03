@@ -25,6 +25,7 @@ def make_forecast_figures(
     per_commodity: pd.DataFrame,
     substitution: pd.DataFrame,
     headline_horizon: int,
+    transmission: pd.DataFrame | None = None,
 ) -> None:
     """Write PBSV bars+bands, grouped-by-horizon, per-year, heatmap, substitution PNGs."""
     sh = shapley[shapley["horizon"] == headline_horizon].reset_index(drop=True)
@@ -140,3 +141,66 @@ def make_forecast_figures(
     fig.tight_layout()
     fig.savefig(figs / "substitution_ladder.png", dpi=130)
     plt.close(fig)
+
+    if transmission is not None and len(transmission):
+        tr = transmission.sort_values("horizon").reset_index(drop=True)
+        tx = np.arange(len(tr))
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.5, 6.5), sharex=True)
+        # Panel 1: forecast skill of the factor state vs AR(1), by horizon.
+        colors = [BLUE if g else GRAY for g in tr["gate_passed"]]
+        ax1.bar(tx, tr["r2_oos_vs_ar1"], 0.55, color=colors)
+        ax1.axhline(0, color="black", lw=0.8)
+        for i, row in tr.iterrows():
+            ax1.annotate(
+                f"CW p={row['cw_p_overlap']:.2f}\n(n.o. {row['cw_p_nonoverlap']:.2f})",
+                (i, row["r2_oos_vs_ar1"]),
+                textcoords="offset points",
+                xytext=(0, 6 if row["r2_oos_vs_ar1"] >= 0 else -18),
+                ha="center",
+                fontsize=7,
+            )
+        ax1.set_ylabel("OOS $R^2$ (full vs AR(1))")
+        ax1.set_title("Does the (macro-linked) factor state forecast commodities, by horizon?")
+        ax1.grid(axis="y", alpha=0.25, lw=0.5)
+        # Panel 2: macro-transmissible share of any gain (substitution retained share).
+        # Retained shares are ratios of (near-zero) v(full) when the gate fails, so they can
+        # explode; clip the view to a readable window and mark bars that run off-scale.
+        lo, hi = -1.5, 2.0
+        for off, col, color, lab in (
+            (-0.2, "retained_share_spanned", BLUE, "spanned block"),
+            (0.2, "retained_share_all", GREEN, "all directions"),
+        ):
+            vals = tr[col].to_numpy(float)
+            ax2.bar(tx + off, np.clip(vals, lo, hi), 0.38, color=color, label=lab)
+            for i, v in enumerate(vals):
+                if v < lo or v > hi:
+                    ax2.annotate(
+                        f"{v:.1f}",
+                        (i + off, hi if v > hi else lo),
+                        textcoords="offset points",
+                        xytext=(0, 4 if v > hi else -10),
+                        ha="center",
+                        fontsize=6,
+                        color=color,
+                    )
+        ax2.set_ylim(lo, hi)
+        ax2.axhline(0, color="black", lw=0.8)
+        ax2.set_ylabel("macro-retained share of v(full)")
+        ax2.set_xticks(tx)
+        ax2.set_xticklabels(
+            [f"h={int(h)}\n(eff n={int(n)})" for h, n in zip(tr["horizon"], tr["effective_n"])]
+        )
+        ax2.legend(fontsize=8)
+        ax2.grid(axis="y", alpha=0.25, lw=0.5)
+        ax2.annotate(
+            "shares interpretable only where the gate passes (blue in top panel)",
+            (0.5, 0.02),
+            xycoords="axes fraction",
+            ha="center",
+            fontsize=7,
+            style="italic",
+            color=GRAY,
+        )
+        fig.tight_layout()
+        fig.savefig(figs / "transmission_by_horizon.png", dpi=130)
+        plt.close(fig)

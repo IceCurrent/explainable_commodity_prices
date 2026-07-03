@@ -16,7 +16,11 @@ Direct h-step, per commodity i, expanding window, refit every origin:
 y(h)_{i,t+h} = alpha_i + beta_i * y(h)_{i,t} + gamma_i' s_t + eps_{i,t+h}
 ```
 
-- `y(h)` = trailing h-day cumulative log return (h ∈ {1, 5, 21}; h=1 headline).
+- `y(h)` = trailing h-day cumulative log return (h ∈ {1, 5, 21, 63} = daily / weekly /
+  monthly / quarterly; h=1 headline). Because macro fundamentals move at weekly-to-quarterly
+  frequency, the full transmission analysis (§2, §5) is run at **every** horizon in
+  `attribution_horizons`, not only h=1 — the horizon ladder is the object that answers "do
+  macros move commodities?" as a function of horizon.
 - `s_t` = the 5-dim latent state at the close of day t (basis: §3).
 - **Exogenous information set = factor state only.** Macro is deliberately excluded from
   the forecasting information set so that macro content can only enter through the
@@ -30,10 +34,24 @@ y(h)_{i,t+h} = alpha_i + beta_i * y(h)_{i,t} + gamma_i' s_t + eps_{i,t+h}
 - Evaluation: pooled MSE on per-commodity variance-standardized losses (raw pooling would
   make the game a NatGas/energy game), on the non-stale panel (series with >15% exact-zero
   daily returns — backfilled/illiquid assessments — are excluded from targets and reported
-  separately). Pooled Clark–West is computed on the time series of cross-sectional mean
+  separately).   Pooled Clark–West is computed on the time series of cross-sectional mean
   adjusted differentials (robust to arbitrary cross-sectional error correlation), Bartlett
-  bandwidth ≥ 2h. Per-commodity CW carries BH-FDR flags. Overlapping h>1 rows are labeled
-  suggestive (effective n ≈ T_oos/h).
+  bandwidth ≥ 2h. Per-commodity CW carries BH-FDR flags. For h>1 the direct-h targets of
+  adjacent origins overlap by h-1 daily returns, so the overlapping pooled test over-counts
+  information; alongside it we report a **non-overlapping** Clark–West (`cw_nonoverlap_p`) run on
+  a greedy subset of origins whose targets are spaced ≥ h apart (autocorrelation-free but
+  lower-power: effective n ≈ T_oos/h). Agreement of the two is the honest long-horizon check.
+
+## 1a. Horizon ladder (the transmission question)
+
+For each horizon the pipeline emits `macro_transmission_by_horizon.csv`: OOS R² of the full
+factor state vs AR(1), overlapping and non-overlapping CW p, the placebo-calibrated CW p, the
+leave-one-commodity-out max p, v(full) with its bootstrap CI, the grouped spanned/weak PBSV with
+its placebo band, the macro-substitution retained share, and the pre-registered `gate_passed`.
+This ladder is the deliverable: it shows at which horizon (if any) the macro-linked commodity
+factor directions translate contemporaneous spanning into out-of-sample predictability, and how
+much of any gain is macro-transmissible. `retained_share` is interpretable only where the gate
+passes; elsewhere it is a ratio of statistical zeros and is reported for completeness.
 
 ## 2. PBSV — the attribution game
 

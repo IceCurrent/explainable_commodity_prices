@@ -1,5 +1,26 @@
 # Changelog — eqcp refactor
 
+## Long-horizon macro transmission (weekly / monthly / quarterly)
+
+- **Motivation.** Macro fundamentals move at weekly-to-quarterly frequency; the daily headline
+  answered "does the macro-linked factor state forecast next-day commodity returns?" (a null).
+  This adds first-class weekly (h=5), monthly (h=21) and **quarterly (h=63)** horizons so the
+  project's core question — *do macros move commodities?* — is answered as a function of forecast
+  horizon, not only at h=1.
+- **Engine.** `SubsetForecasts.select_origins` + `nonoverlap_mask` (`eqcp/forecasting/ar1.py`):
+  direct-h targets overlap by h-1 daily returns, so pooled tests over-count information; the new
+  mask keeps targets spaced >= h apart for an autocorrelation-free (lower-power) Clark–West check.
+  `forecast_accuracy_pooled.csv` now carries `cw_nonoverlap_p` / `n_nonoverlap` at every horizon.
+- **Per-horizon transmission bundle.** The full attribution stack (exact PBSV, jointly-shifted
+  placebo bands, leave-one-commodity-out CW, the pre-registered share-of-gain gate, and the
+  macro-substitution ladder) now runs at **every** horizon in `attribution_horizons`, not just the
+  headline. New artifact `results/forecast_pbsv/macro_transmission_by_horizon.csv` and figure
+  `figures/forecast_pbsv/transmission_by_horizon.png` are the horizon ladder; the report gains a
+  **"Macro transmission across horizons"** section and a horizon-aware verdict.
+  `macro_substitution.csv` gains a `horizon` column.
+- **Config.** `configs/forecast_pbsv.yaml`: `horizons: [1, 5, 21, 63]` and a new
+  `attribution_horizons` list (`ForecastPBSVConfig.attribution_horizons`).
+
 ## Panel curation + sector-wise analysis + main orchestrator
 
 - **Removed six stale-priced series entirely** from the commodity panel (`data/commodities/prices.csv`,

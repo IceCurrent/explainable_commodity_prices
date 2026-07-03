@@ -175,6 +175,23 @@ def test_bootstrap_pbsv_deterministic_and_efficient_per_draw():
     )
 
 
+def test_nonoverlap_mask_and_select_origins():
+    returns, state = _simulate(T=500)
+    h = 5
+    fr = expanding_subset_forecasts(returns, state, oos_start=250, horizon=h, min_train=40)
+    mask = fr.nonoverlap_mask()
+    kept = fr.targets[mask]
+    # consecutive kept targets are spaced at least h apart -> no overlap
+    assert np.all(np.diff(kept) >= h)
+    # first origin is always kept and the mask is a strict subset
+    assert mask[0]
+    assert mask.sum() <= len(fr.origins)
+    sub = fr.select_origins(mask)
+    assert len(sub.origins) == int(mask.sum())
+    assert sub.preds.shape[1] == int(mask.sum())
+    np.testing.assert_array_equal(sub.targets, kept)
+
+
 def test_staleness_stats():
     r = np.array([[0.0, 0.1], [0.0, 0.2], [0.0, 0.0], [0.1, 0.3]])
     frac, longest = staleness_stats(r)

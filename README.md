@@ -49,7 +49,7 @@ make macro-panel   # build raw/aligned/stationary macro panel from the workbook
 make mapping       # AE factors <-> macro CCA: OOS rho, null, CIs, bloc map, per-regime, figures, report
 make sectors       # sector-wise AE <-> macro CCA spanning (energy / agriculture / metals) + report
 make synthetic     # synthetic ground-truth validation of the CCA probe
-make forecast      # factor-augmented AR(1) forecasts + PBSV attribution + macro substitution
+make forecast      # factor-augmented AR(1) + PBSV + macro substitution across daily/weekly/monthly/quarterly horizons
 make all
 ```
 
@@ -87,6 +87,11 @@ Each is offline, deterministic (`--seed`), and reproduces identical outputs acro
 - `results/forecast_pbsv/` — forecast accuracy vs zero/mean/AR(1) benchmarks, PBSV Shapley
   tables with bootstrap CIs and cardinality-matched placebo bands, grouped (spanned vs
   weakly-macro-correlated block) attribution, macro-substitution ladder, seed/basis stability.
+  **`macro_transmission_by_horizon.csv`** is the horizon ladder (daily → quarterly): OOS R² vs
+  AR(1), overlapping *and* non-overlapping Clark–West p, the share-of-gain gate, and the
+  macro-transmissible retained share at each horizon — the direct answer to "at what horizon, if
+  any, does the macro content in commodity factors forecast commodities?" (`figures/forecast_pbsv/
+  transmission_by_horizon.png`).
   **Attribution is in the train-frozen CCA canonical-variate basis, never raw AE coordinates**
   (AE latents are identified only up to invertible affine maps; raw-coordinate attribution is
   basis-dependent). `reports/forecast_pbsv_report.md` is the narrative verdict with a

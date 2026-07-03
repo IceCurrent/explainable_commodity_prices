@@ -1,5 +1,11 @@
 train_frac: 0.6
-horizons: [1, 5, 21]
+# Daily / weekly / monthly / quarterly. The macro-transmission question is
+# answered across ALL of these; h=1 remains the headline for the detailed
+# identification diagnostics (seeds, controls, per-commodity, by-year).
+horizons: [1, 5, 21, 63]
+# Horizons that get the full transmission bundle (grouped PBSV + placebo band +
+# leave-one-commodity-out + gate + macro-substitution ladder). Empty = all.
+attribution_horizons: [1, 5, 21, 63]
 headline_horizon: 1
 min_train: 60
 ridge_grid: [0.0, 0.001, 0.01, 0.1, 1.0]

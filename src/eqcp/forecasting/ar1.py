@@ -124,6 +124,34 @@ class SubsetForecasts:
             horizon=self.horizon,
         )
 
+    def select_origins(self, mask: np.ndarray) -> SubsetForecasts:
+        """Restrict to a subset of OOS origins (e.g. non-overlapping targets)."""
+        return SubsetForecasts(
+            keys=self.keys,
+            origins=self.origins[mask],
+            targets=self.targets[mask],
+            preds=self.preds[:, mask],
+            actual=self.actual[mask],
+            horizon=self.horizon,
+        )
+
+    def nonoverlap_mask(self) -> np.ndarray:
+        """Greedy mask of origins whose h-period targets do NOT overlap.
+
+        For h > 1 the trailing-h cumulative targets of adjacent origins share
+        h-1 daily returns, so pooled tests on all origins over-count
+        information; this mask keeps the largest left-to-right set of origins
+        spaced >= h apart in the target calendar, giving an autocorrelation-free
+        sample for honest long-horizon inference (at the cost of efficiency).
+        """
+        mask = np.zeros(len(self.origins), dtype=bool)
+        last = -(10**9)
+        for i, tgt in enumerate(self.targets):
+            if int(tgt) - last >= self.horizon:
+                mask[i] = True
+                last = int(tgt)
+        return mask
+
 
 def expanding_subset_forecasts(
     returns: np.ndarray,

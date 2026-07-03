@@ -63,7 +63,8 @@ class MacroMappingConfig:
 @dataclass
 class ForecastPBSVConfig:
     train_frac: float = 0.6
-    horizons: tuple[int, ...] = (1, 5, 21)
+    horizons: tuple[int, ...] = (1, 5, 21, 63)
+    attribution_horizons: tuple[int, ...] = (1, 5, 21, 63)
     headline_horizon: int = 1
     min_train: int = 60
     ridge_grid: tuple[float, ...] = (0.0, 1e-3, 1e-2, 1e-1, 1.0)
@@ -88,7 +89,13 @@ class ForecastPBSVConfig:
 
 def load_forecast_pbsv_config(path: Path | None = None) -> ForecastPBSVConfig:
     data = _load_yaml(path or CONFIG_DIR / "forecast_pbsv.yaml")
-    for key in ("horizons", "ridge_grid", "stability_seeds", "lagged_macro_series"):
+    for key in (
+        "horizons",
+        "attribution_horizons",
+        "ridge_grid",
+        "stability_seeds",
+        "lagged_macro_series",
+    ):
         if key in data:
             data[key] = tuple(data[key])
     return ForecastPBSVConfig(**data)
