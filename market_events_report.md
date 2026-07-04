@@ -1,6 +1,6 @@
 # Market Events Report
 
-## Executive Summary
+#### Executive Summary
 
 The statistically detected events cluster into 11 research episodes, with four standing out as the main market-level drivers: a January 2026 U.S. natural-gas freeze-off, a January precious-metals blow-off and forced deleveraging, the February-May 2026 Strait of Hormuz energy shock, and the late-May cross-asset decoupling as oil risk premia unwound while precious metals stabilized. The remaining events are still economically relevant, but they are more localized, more commodity-specific, or less cleanly confirmed by the news record.
 
