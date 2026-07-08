@@ -1,6 +1,6 @@
 calendar: T=2870 N=21 (2013-10-21 -> 2026-06-01); train_frac=0.6 -> split at 2021-04-30 (train 1722, OOS 1148 days); COVID crash is IN TRAIN
 staleness: 0 series above zero-frac 0.15: [] (headline targets exclude them)
-  AE(leak-free): K=5 activation=relu seed=0 trained on first 1722 days, frozen encode of all 2870
+  AE(leak-free): vanilla K=5 activation=relu seed=0 trained on first 1722 days, frozen encode of all 2870
 basis: ridge_m=0.0 (ridge_f=0 pinned) cond(F)=3.0 rho_train=[0.74  0.52  0.354 0.225 0.158]
 basis: rho_cv_train=[ 0.691  0.438  0.272  0.139 -0.001] perm_p=[0.00497512 0.00497512 0.00497512 0.00497512 0.51741294] -> spanned block = cv1..cv1 (weakly-macro-correlated: cv2..cv5)
 basis OOS(frozen): dim  rho_train  rho_cv_train  perm_p_train  rho_oos_frozen  loading_cosine_oos  spanned                       top_loadings_train
@@ -22,7 +22,7 @@ macro-transmission ladder written; share-of-gain gate passes at horizons NONE (o
 LOCO CW (h=1): weakest after dropping Aluminium: p=0.4362; phi excluding Aluminium: [-2.067e-07 -4.446e-07 -2.353e-07  1.861e-07 -5.868e-07]
 controls arm: v_full -1.244e-06 -> -1.279e-06 with EWMA-vol+12m-momentum in both models
 headline placebo-calibrated pooled CW p=0.2673
-  AE(leak-free): K=5 activation=relu seed=1 trained on first 1722 days, frozen encode of all 2870
-  AE(leak-free): K=5 activation=relu seed=2 trained on first 1722 days, frozen encode of all 2870
+  AE(leak-free): vanilla K=5 activation=relu seed=1 trained on first 1722 days, frozen encode of all 2870
+  AE(leak-free): vanilla K=5 activation=relu seed=2 trained on first 1722 days, frozen encode of all 2870
 substitution calendar: macro-available OOS days only; 67 OOS days dropped; gpr/epu lagged 1 day (publication lag); ALL arms share the calendar
 GATE (share-of-gain, h=1): CW p=0.3280, LOCO max p=0.4362 (dropping Aluminium), placebo-calibrated CW p=0.2673, v_full CI=[-2.62e-06,3.91e-08] excludes 0: False, beats zero: False -> gate_passed=False. Gate across horizons: h=1:False, h=5:False, h=21:False, h=63:False

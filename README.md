@@ -28,6 +28,21 @@ by macro out-of-sample: **dim1 ≈ dollar / inflation / energy-equity**, **dim2 
 commodity-FX**. Dimensions 3–5 do not survive out-of-sample testing against the permutation
 null. In-sample canonical correlations are reported only as a (inflated) descriptive ceiling.
 
+## Why the forecasting stage returns a null — the deep analysis
+
+`reports/deep_analysis_report.md` (branch `deep-analysis`; scripts under `analysis/`,
+artifacts under `results/deep_analysis/` and `figures/deep_analysis/`) establishes with
+positive controls **why** the factor state does not forecast returns: (1) an
+injected-signal study shows the engine detects any pooled signal ≥ ~0.25% OOS R² with
+correct size — the machinery is fine; (2) a model-free 37×21 predictive scan finds **no**
+lagged macro→commodity association once a 24h embargo is imposed; (3) every apparent
+positive (including the substitution-arm Clark–West) is **asynchronous-close
+contamination** — US macro closes 2.5–5h after commodity settlements, and the fake
+"lag-1 signal" scales with each contract's after-settle window (corr +0.78, LME metals
+worst); (4) the same engine on |r| targets finds vol clustering at +3%/+17%/+29% OOS R² —
+second moments are forecastable, first moments are not; (5) the h=21/63 ladder rows are
+power-bounded (54/18 effective obs) and are "untestable here", not evidence of absence.
+
 ## Why CCA, and why out-of-sample
 
 Autoencoder latents are identified only up to rotation/sign/permutation, so per-factor R²
@@ -95,7 +110,8 @@ Each is offline, deterministic (`--seed`), and reproduces identical outputs acro
   **Attribution is in the train-frozen CCA canonical-variate basis, never raw AE coordinates**
   (AE latents are identified only up to invertible affine maps; raw-coordinate attribution is
   basis-dependent). `reports/forecast_pbsv_report.md` is the narrative verdict with a
-  pre-registered gate on share-of-gain language.
+  pre-registered gate on share-of-gain language (`reports/forecast_pbsv_beta_report.md`
+  for the beta-VAE arm; `sub_cw_p_all` carries a timing caveat — see the deep analysis).
 
 ## Caveats
 

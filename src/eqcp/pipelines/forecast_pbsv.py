@@ -107,7 +107,9 @@ def train_leakfree_factors(
 
     model.eval()
     with torch.no_grad():
-        factors = model.encode(torch.tensor(xz, dtype=torch.float32)).cpu().numpy()
+        # both factor-model classes define .encode; nn.Module.__getattr__ hides it from mypy
+        enc = model.encode(torch.tensor(xz, dtype=torch.float32))  # type: ignore[operator]
+        factors = enc.cpu().numpy()
     F = pd.DataFrame(
         factors.astype(np.float64),
         index=dates,
@@ -887,6 +889,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         cw_placebo_p=cw_placebo_p,
         phi_loco=phi_loco,
         loco_max_name=loco_max_name,
+        model_type=model_type,
     )
 
     log.write(res / "run_log.txt")

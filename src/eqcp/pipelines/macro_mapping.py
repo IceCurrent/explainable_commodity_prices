@@ -75,8 +75,10 @@ def _read_factor_csv(path: Path) -> pd.DataFrame:
 def _factor_model_type(args: argparse.Namespace) -> FactorModelType:
     model_type = getattr(args, "factor_model", "vanilla")
     if model_type not in FACTOR_CSV_NAMES:
-        raise ValueError(f"factor_model must be one of {tuple(FACTOR_CSV_NAMES)}, got {model_type!r}")
-    return model_type  # type: ignore[return-value]
+        raise ValueError(
+            f"factor_model must be one of {tuple(FACTOR_CSV_NAMES)}, got {model_type!r}"
+        )
+    return model_type
 
 
 def resolve_factors(

@@ -53,8 +53,9 @@ def write_forecast_report(
     cw_placebo_p: float,
     phi_loco: np.ndarray,
     loco_max_name: str,
+    model_type: str = "vanilla",
 ) -> None:
-    """Write reports/forecast_pbsv_report.md."""
+    """Write reports/forecast_pbsv_report.md (or _beta_ for the beta-VAE arm)."""
     h0 = cfg.headline_horizon
     head = pooled[pooled["horizon"] == h0].iloc[0]
     sh0 = shapley[shapley["horizon"] == h0]
@@ -326,6 +327,17 @@ def write_forecast_report(
         )
     )
     a("")
+    a(
+        "**Timing caveat.** US macro closes (FX/rates ~17:00 ET, equities 16:00-16:15 ET) "
+        "postdate the commodity settlements (LME ~12:00, COMEX ~13:30, CME/ICE ~14:30 ET), so "
+        "same-day macro variates contain up to ~5 hours of information from INSIDE the "
+        "day-(t+1) settlement-to-settlement return window. A significant substitution-arm "
+        "Clark-West is therefore NOT evidence of lagged macro transmission: it collapses when "
+        "the macro variates are lagged one additional day, and its per-commodity strength "
+        "lines up with each contract's after-settle overlap hours (LME metals first). See "
+        "`reports/deep_analysis_report.md`."
+    )
+    a("")
 
     a("## Identification diagnostics")
     a("")
@@ -382,4 +394,9 @@ def write_forecast_report(
     )
     a("")
 
-    (rep / "forecast_pbsv_report.md").write_text("\n".join(lines))
+    name = (
+        "forecast_pbsv_report.md"
+        if model_type == "vanilla"
+        else "forecast_pbsv_beta_report.md"
+    )
+    (rep / name).write_text("\n".join(lines))

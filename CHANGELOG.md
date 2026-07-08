@@ -1,5 +1,27 @@
 # Changelog — eqcp refactor
 
+## Deep analysis — why forecasting fails (branch `deep-analysis`)
+
+- **`reports/deep_analysis_report.md`** — the diagnosis. Injected-signal power study
+  (engine MDE ≈ 0.25% pooled R² at h=1, size correct), model-free calibrated predictive
+  scan (null under 24h embargo), the **asynchronous-close artifact** (US macro closes
+  postdate commodity settlements by 2.5–5h; fake lag-1 signal scales with the after-settle
+  window, corr +0.78; explains the substitution-arm CW p≈0.008 → 0.77 under one extra lag
+  and the recurring Zinc/Aluminium LOCO flags), volatility positive control (vol
+  clustering detected at +3%/+17%/+29% OOS R² by the same engine), state-persistence
+  ceiling (canonical variates AC(1)≈0.01–0.08), PCA/sector-state parity (AE not the
+  bottleneck), long-horizon power bounds (h=21/63 untestable at 54/18 effective obs).
+  Scripts in `analysis/da01–da09`; artifacts in `results/deep_analysis/`,
+  `figures/deep_analysis/`.
+- **Fixed report-file collision**: `make forecast-beta` overwrote the vanilla
+  `reports/forecast_pbsv_report.md`; forecast reports are now model-specific
+  (`forecast_pbsv_beta_report.md`), matching the sector convention. Both pipelines
+  regenerated.
+- **Timing caveat** appended to the forecast report's macro-substitution section:
+  substitution-arm Clark–West significance is asynchronous-close contamination, not
+  lagged macro transmission.
+- Fixed pre-existing `ruff` E501 in `pipelines/macro_mapping.py` (lint gate was red).
+
 ## Long-horizon macro transmission (weekly / monthly / quarterly)
 
 - **Motivation.** Macro fundamentals move at weekly-to-quarterly frequency; the daily headline

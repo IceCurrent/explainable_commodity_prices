@@ -56,7 +56,7 @@ def train_factors(
         )
         return train_vanilla_autoencoder(window_returns, cfg)
     if model_type == "beta_vae":
-        cfg = BetaVAETrainConfig(
+        vae_cfg = BetaVAETrainConfig(
             n_factors=factor_cfg.n_factors,
             epochs=factor_cfg.epochs,
             batch_size=factor_cfg.batch_size,
@@ -66,7 +66,7 @@ def train_factors(
             activation=factor_cfg.activation,
             beta=factor_cfg.beta,
         )
-        return train_beta_vae(window_returns, cfg)
+        return train_beta_vae(window_returns, vae_cfg)
     raise ValueError(f"unknown factor model type: {model_type!r}")
 
 

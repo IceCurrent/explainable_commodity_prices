@@ -16,7 +16,8 @@ def test_beta_vae_trains_and_returns_correct_shape():
     model, factors = train_beta_vae(x, cfg)
     assert factors.shape == (120, 3)
     assert np.isfinite(factors).all()
-    recon = model.decoder(model.encode(__import__("torch").tensor(x, dtype=__import__("torch").float32)))
+    torch = __import__("torch")
+    recon = model.decoder(model.encode(torch.tensor(x, dtype=torch.float32)))
     assert recon.shape == (120, 8)
 
 
