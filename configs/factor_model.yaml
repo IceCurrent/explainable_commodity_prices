@@ -5,3 +5,4 @@ learning_rate: 0.001
 patience: 5
 seed: 0
 activation: relu
+beta: 4.0

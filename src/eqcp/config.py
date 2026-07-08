@@ -26,6 +26,7 @@ class FactorModelConfig:
     patience: int = 5
     seed: int = 0
     activation: str = "relu"
+    beta: float = 4.0
 
 
 @dataclass

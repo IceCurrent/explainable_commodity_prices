@@ -4,9 +4,9 @@
 
 On the aligned daily sample (**T=2691**, K=5 vanilla-AE latent factors, J=37 macro variables), the spanning question is settled by the **out-of-sample (purged-CV) canonical correlations vs the circular-shift OOS permutation null** — not the in-sample numbers, which a J=37 collinear panel inflates by construction.
 
-- **ρ_min**: in-sample 0.123, **OOS -0.000**, OOS perm-null p95 -0.004, **OOS perm-p 0.0370**, bootstrap 95% CI [0.127, 0.196].
+- **ρ_min**: in-sample 0.135, **OOS 0.001**, OOS perm-null p95 -0.003, **OOS perm-p 0.0270**, bootstrap 95% CI [0.137, 0.205].
 
-- **ρ_mean**: in-sample 0.374, OOS 0.291, OOS perm-null p95 0.020, OOS perm-p 0.0010.
+- **ρ_mean**: in-sample 0.352, OOS 0.236, OOS perm-null p95 0.020, OOS perm-p 0.0010.
 
 - **2 of 5** factor directions are macro-spanned at significance (OOS ρ>0.3 and OOS perm-p<0.05). ρ_min is the all-five-spanned statistic; clearing the (high) null band is what counts, not the raw level.
 
@@ -19,21 +19,21 @@ On the aligned daily sample (**T=2691**, K=5 vanilla-AE latent factors, J=37 mac
 
 | dim | OOS ρ | OOS perm-p | in-sample perm-p | top macro (struct corr) | bloc reading |
 |---|---|---|---|---|---|
-| dim1 | 0.642 | 0.001 | 0.001 | xle(+0.85), be_5y(+0.66), inflsw_5y(+0.66), fx_usdcad(-0.59) | fx(+0.78), equity(-0.78), infl(-0.64) |
-| dim2 | 0.487 | 0.001 | 0.001 | fx_audusd(+0.66), fx_bbdxy(-0.64), fx_dxy(-0.63), fx_usdclp(-0.57) | infl(+0.61), rates(+0.57), fx(+0.52) |
-| dim3 | 0.197 | 0.001 | 0.001 | tips_5y(+0.55), ust_5y(+0.54), ust_10y(+0.53), tips_10y(+0.49) | china(-0.67), rates(-0.56), credit(+0.30) |
-| dim4 | 0.130 | 0.001 | 0.001 | fx_usdbrl(+0.72), ust_2y(-0.23), tips_10y(-0.22), move(-0.21) | credit(-0.51), rates(-0.41), vol(-0.32) |
-| dim5 | -0.000 | 0.538 | 0.001 | ig_oas(-0.43), epu(-0.39), bdiy(+0.31), ovx(-0.22) | china(+0.45), uncert(+0.40), freight(-0.39) |
+| dim1 | 0.634 | 0.001 | 0.001 | xle(+0.85), be_5y(+0.67), inflsw_5y(+0.66), fx_usdcad(-0.59) | equity(+0.79), fx(-0.75), infl(+0.69) |
+| dim2 | 0.443 | 0.001 | 0.001 | fx_bbdxy(+0.69), fx_dxy(+0.68), fx_audusd(-0.66), fx_eurusd(-0.57) | rates(+0.63), fx(+0.57), infl(+0.55) |
+| dim3 | 0.038 | 0.080 | 0.001 | epu(+0.49), ig_oas(+0.49), hy_oas(+0.37), gpr(+0.36) | uncert(+0.76), credit(+0.46), vol(+0.33) |
+| dim4 | 0.001 | 0.461 | 0.001 | mxef(-0.37), hscei(-0.31), gvz(+0.30), csi300(-0.29) | china(+0.79), freight(+0.26), fx(+0.19) |
+| dim5 | 0.062 | 0.005 | 0.001 | fx_usdbrl(-0.52), hscei(-0.28), move(+0.23), gpr(-0.21) | equity(+0.42), freight(+0.42), credit(-0.39) |
 
 ## Linear vs kernel
 
-Exact KCCA (reg=1.0): top-5 [0.782, 0.747, 0.692, 0.657, 0.643], min 0.476, mean 0.557; Nyström permutation null min-p 0.0050, mean-p 0.0050. Stability across reg∈(0.1, 0.3, 1.0, 3.0, 10.0) × gamma_scale∈(0.5, 1.0, 2.0): kcca_min ranges [0.093, 0.905] (see kcca_stability.csv/png). 
-**KCCA verdict: inconclusive / degenerate** — kcca_min unstable across sweep (IQR=0.442 >= 0.15).
+Exact KCCA (reg=1.0): top-5 [0.755, 0.713, 0.666, 0.595, 0.583], min 0.355, mean 0.475; Nyström permutation null min-p 0.0050, mean-p 0.0050. Stability across reg∈(0.1, 0.3, 1.0, 3.0, 10.0) × gamma_scale∈(0.5, 1.0, 2.0): kcca_min ranges [0.037, 0.857] (see kcca_stability.csv/png). 
+**KCCA verdict: inconclusive / degenerate** — kcca_min unstable across sweep (IQR=0.434 >= 0.15).
 
 
 ## Interpretable bloc-PC map
 
-CCA(F, 9 bloc-PCs) — far less overfit than J=37: ρ_is [0.58, 0.376, 0.212, 0.092, 0.057], ρ_oos [0.547, 0.337, 0.156, 0.066, 0.051], perm-p_min 0.0010. This is the clean story; the per-dimension table above pairs each canonical direction with its dominant bloc.
+CCA(F, 9 bloc-PCs) — far less overfit than J=37: ρ_is [0.573, 0.372, 0.196, 0.053, 0.018], ρ_oos [0.539, 0.343, 0.11, -0.063, -0.057], perm-p_min 0.7463. This is the clean story; the per-dimension table above pairs each canonical direction with its dominant bloc.
 
 
 ## Encoder activation experiment
@@ -51,15 +51,15 @@ ReLU one-sided latents may suppress weak macro-spanned dimensions. Each row retr
 
 | regime | T | ρ_min | ρ_mean | null_min_p95 | perm_p_min | low-power |
 |---|---|---|---|---|---|---|
-| R1 | 134 | 0.168 | 0.327 | 0.184 | 0.084 | yes |
-| R2 | 355 | 0.146 | 0.339 | 0.097 | 0.002 |  |
-| R3 | 579 | 0.070 | 0.297 | 0.079 | 0.094 |  |
-| R4 | 285 | 0.104 | 0.345 | 0.105 | 0.058 |  |
-| R5 | 186 | 0.080 | 0.392 | 0.129 | 0.557 | yes |
-| R6 | 308 | 0.068 | 0.264 | 0.104 | 0.473 |  |
-| R7 | 295 | 0.127 | 0.381 | 0.107 | 0.008 |  |
-| R8 | 245 | 0.088 | 0.332 | 0.115 | 0.285 | yes |
-| R9 | 304 | 0.071 | 0.335 | 0.100 | 0.461 |  |
+| R1 | 134 | 0.112 | 0.266 | 0.165 | 0.405 | yes |
+| R2 | 355 | 0.101 | 0.310 | 0.094 | 0.016 |  |
+| R3 | 579 | 0.063 | 0.283 | 0.079 | 0.214 |  |
+| R4 | 285 | 0.118 | 0.364 | 0.102 | 0.010 |  |
+| R5 | 186 | 0.111 | 0.408 | 0.144 | 0.190 | yes |
+| R6 | 308 | 0.136 | 0.324 | 0.104 | 0.012 |  |
+| R7 | 295 | 0.074 | 0.308 | 0.104 | 0.431 |  |
+| R8 | 245 | 0.074 | 0.298 | 0.109 | 0.519 | yes |
+| R9 | 304 | 0.151 | 0.376 | 0.100 | 0.002 |  |
 
 Low-power regimes (T small vs dimensionality): ['R1', 'R5', 'R8'].
 
@@ -71,10 +71,10 @@ Mean canonical correlation peaks at **lag=0** (0 = contemporaneous; >0 = macro l
 
 ## Robustness
 
-- **drop_xle**: J=36/rho_min=0.123; J=36/rho_mean=0.356; J=36/oos_min=0.001; baseline_J37/rho_min=0.123
-- **ridge_sweep**: ridge=0.0/oos_mean=0.291; ridge=0.001/oos_mean=0.111; ridge=0.01/oos_mean=0.106; ridge=0.1/oos_mean=0.091; ridge=1.0/oos_mean=0.040
-- **boot_block**: mean_block=10/rho_min_lo=0.130; mean_block=10/rho_min_hi=0.198; mean_block=21/rho_min_lo=0.127; mean_block=21/rho_min_hi=0.196; mean_block=42/rho_min_lo=0.130; mean_block=42/rho_min_hi=0.195
-- **china_seam**: pre_2016-08-02/rho_min=0.283; pre_2016-08-02/rho_mean=0.474; post_2016-08-02/rho_min=0.142; post_2016-08-02/rho_mean=0.389
+- **drop_xle**: J=36/rho_min=0.133; J=36/rho_mean=0.334; J=36/oos_min=-0.002; baseline_J37/rho_min=0.135
+- **ridge_sweep**: ridge=0.0/oos_mean=0.236; ridge=0.001/oos_mean=0.081; ridge=0.01/oos_mean=0.073; ridge=0.1/oos_mean=0.056; ridge=1.0/oos_mean=0.023
+- **boot_block**: mean_block=10/rho_min_lo=0.139; mean_block=10/rho_min_hi=0.202; mean_block=21/rho_min_lo=0.137; mean_block=21/rho_min_hi=0.205; mean_block=42/rho_min_lo=0.135; mean_block=42/rho_min_hi=0.203
+- **china_seam**: pre_2016-08-02/rho_min=0.226; pre_2016-08-02/rho_mean=0.428; post_2016-08-02/rho_min=0.149; post_2016-08-02/rho_mean=0.368
 
 
 ## Caveats (data + method)
@@ -88,7 +88,7 @@ Mean canonical correlation peaks at **lag=0** (0 = contemporaneous; >0 = macro l
 
 ## Acceptance checks
 
-- [x] linear_cca_full(ridge=0)==canonical_correlations (<1e-8) — max|diff|=9.62e-10
+- [ ] linear_cca_full(ridge=0)==canonical_correlations (<1e-8) — max|diff|=6.21e-07
 - [x] aligned T >= 2690 — T=2691 (threshold 2690; gpr early-history gaps reduce aligned T vs naive 2900+)
 - [x] convenience vs preferred panel rho agree (<0.02) — max|diff|=0.0000 on 2691 shared dates
 - [x] per-regime slices sum to full sample — sum=2691 T=2691
@@ -98,4 +98,4 @@ Mean canonical correlation peaks at **lag=0** (0 = contemporaneous; >0 = macro l
 - [x] deterministic: identical CSVs across runs — all RNGs seeded from --seed; md5-stable across reruns (verified)
 
 
-*Factors source: `/Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_vanilla.csv`. Ridge CV-selected = 0.0 (OOS-mean grid {0.0: 0.2912, 0.001: 0.1107, 0.01: 0.1061, 0.1: 0.0912, 1.0: 0.0399}). Deterministic given --seed.*
+*Factors source: `/Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_beta.csv`. Ridge CV-selected = 0.0 (OOS-mean grid {0.0: 0.2355, 0.001: 0.0814, 0.01: 0.0734, 0.1: 0.0562, 1.0: 0.0225}). Deterministic given --seed.*

@@ -1,0 +1,30 @@
+factors: no export found; searched ['/Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_beta.csv']
+factors: regenerating from beta_vae (full-sample fit/encode)
+  AE: BetaVAE K=5 beta=4.0 activation=relu epochs=100 seed=0 on 2870x21 commodity returns
+factors: wrote regenerated factors -> /Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_beta.csv  shape=(2870, 5)
+macro: 37 series from data/processed/macro_stationary.csv
+aligned: T=2691  K=5  J=37  (2013-11-01 -> 2026-06-01)
+preferred-path: max|rho_conv - rho_pref|=0.0000
+ridge: CV-selected ridge=0.0  OOS-mean scores={0.0: 0.2355, 0.001: 0.0814, 0.01: 0.0734, 0.1: 0.0562, 1.0: 0.0225}
+linear: rho_insample=[0.687 0.513 0.26  0.163 0.135]
+linear: rho_oos     =[0.634 0.443 0.038 0.001 0.062]
+linear: rho_min=0.135 OOS=0.001 OOS_null_p95=-0.003 OOS_perm_p=0.0270 boot=[0.137,0.205]
+linear: rho_mean=0.352 OOS=0.236 OOS_null_p95=0.020 OOS_perm_p=0.0010
+kcca: exact reg=1.0 top5=[0.755 0.713 0.666 0.595 0.583] min=0.355 mean=0.475
+kcca: Nystrom null min p=0.0050 mean p=0.0050
+bloc-PC: rho_is=[0.573 0.372 0.196 0.053 0.018] oos=[ 0.539  0.343  0.11  -0.063 -0.057] min_p=0.7463
+per-regime: 9 regimes, low-power flagged: ['R1', 'R5', 'R8']
+lead/lag: peak at lag=0 (0=contemporaneous)
+robustness: 19 rows (drop-xle, ridge sweep, boot blocks, China seam)
+encoder experiment: activation=relu
+  AE: VanillaAutoencoder K=5 activation=relu epochs=100 seed=0 on 2870x21 commodity returns
+encoder experiment: activation=tanh
+  AE: VanillaAutoencoder K=5 activation=tanh epochs=100 seed=1 on 2870x21 commodity returns
+encoder experiment: activation=linear
+  AE: VanillaAutoencoder K=5 activation=linear epochs=100 seed=2 on 2870x21 commodity returns
+encoder experiment: wrote 3 rows
+factor model comparison: vanilla
+  AE: VanillaAutoencoder K=5 activation=relu epochs=100 seed=0 on 2870x21 commodity returns
+factor model comparison: beta_vae
+  AE: BetaVAE K=5 beta=4.0 activation=relu epochs=100 seed=1 on 2870x21 commodity returns
+factor model comparison: wrote 2 rows -> results/macro_mapping/factor_model_comparison.csv

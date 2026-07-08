@@ -35,7 +35,12 @@ from eqcp.config import (
     load_factor_model_config,
     load_macro_mapping_config,
 )
-from eqcp.factors.autoencoder import AETrainConfig, train_vanilla_autoencoder
+from eqcp.factors.extract import (
+    FACTOR_CSV_NAMES,
+    RESULTS_SUBDIRS,
+    FactorModelType,
+    regenerate_factors,
+)
 from eqcp.io.commodities import load_return_panel
 from eqcp.io.macro import (
     build_preferred_panel,
@@ -67,54 +72,64 @@ def _read_factor_csv(path: Path) -> pd.DataFrame:
     return F.select_dtypes("number")
 
 
+def _factor_model_type(args: argparse.Namespace) -> FactorModelType:
+    model_type = getattr(args, "factor_model", "vanilla")
+    if model_type not in FACTOR_CSV_NAMES:
+        raise ValueError(f"factor_model must be one of {tuple(FACTOR_CSV_NAMES)}, got {model_type!r}")
+    return model_type  # type: ignore[return-value]
+
+
 def resolve_factors(
     args: argparse.Namespace,
     factor_cfg: FactorModelConfig,
     log: RunLogger,
 ) -> tuple[pd.DataFrame, str]:
-    """Resolve the vanilla-AE factor panel: explicit path -> repo search -> regen."""
+    """Resolve the factor panel: explicit path -> repo search -> regen."""
     k = factor_cfg.n_factors
+    model_type = _factor_model_type(args)
 
     if args.factors is not None and Path(args.factors).exists():
         F = _read_factor_csv(Path(args.factors))
         log(f"factors: loaded explicit --factors {args.factors}  shape={F.shape}")
         return F, str(args.factors)
 
-    default = PROJECT_ROOT / "data" / "processed" / "ae_factors_vanilla.csv"
+    default = PROJECT_ROOT / "data" / "processed" / FACTOR_CSV_NAMES[model_type]
+    tag = "vanilla" if model_type == "vanilla" else "beta"
     candidates = [default]
     for d in (PROJECT_ROOT / "data", PROJECT_ROOT / "results"):
         if d.exists():
             candidates += [
                 p
                 for p in d.rglob("*.csv")
-                if "vanilla" in p.name.lower() and "factor" in p.name.lower()
+                if tag in p.name.lower() and "factor" in p.name.lower()
             ]
     for cand in candidates:
         if cand.exists():
             F = _read_factor_csv(cand)
             if F.shape[1] == k:
-                log(f"factors: found existing vanilla-AE export {cand}  shape={F.shape}")
+                log(f"factors: found existing {model_type} export {cand}  shape={F.shape}")
                 return F, str(cand)
 
     log(f"factors: no export found; searched {[str(c) for c in candidates]}")
-    log("factors: regenerating from the project's vanilla AE (full-sample fit/encode)")
-    F = regenerate_vanilla_factors(factor_cfg, log)
+    log(f"factors: regenerating from {model_type} (full-sample fit/encode)")
+    F = regenerate_factors_for_model(factor_cfg, model_type, log)
     default.parent.mkdir(parents=True, exist_ok=True)
     F.to_csv(default)
     log(f"factors: wrote regenerated factors -> {default}  shape={F.shape}")
     return F, str(default)
 
 
-def regenerate_vanilla_factors(
+def regenerate_factors_for_model(
     factor_cfg: FactorModelConfig,
+    model_type: FactorModelType,
     log: RunLogger,
     activation: str | None = None,
 ) -> pd.DataFrame:
-    """Train vanilla AE on the full commodity panel; encode all days."""
+    """Train the requested factor model on the full commodity panel; encode all days."""
     panel = load_return_panel()
     Xz = panel.standardized
     act = activation or factor_cfg.activation
-    cfg = AETrainConfig(
+    fc = FactorModelConfig(
         n_factors=factor_cfg.n_factors,
         epochs=factor_cfg.epochs,
         batch_size=factor_cfg.batch_size,
@@ -122,19 +137,28 @@ def regenerate_vanilla_factors(
         patience=factor_cfg.patience,
         seed=factor_cfg.seed,
         activation=act,
+        beta=factor_cfg.beta,
     )
-    log(
-        f"  AE: VanillaAutoencoder K={cfg.n_factors} activation={act} "
-        f"epochs={cfg.epochs} seed={cfg.seed} on {Xz.shape[0]}x{Xz.shape[1]} commodity returns"
-    )
-    _, factors = train_vanilla_autoencoder(Xz, cfg)
-    F = pd.DataFrame(
-        factors,
-        index=panel.dates,
-        columns=[f"f{i + 1}" for i in range(cfg.n_factors)],
-    )
-    F.index.name = "date"
-    return F
+    if model_type == "vanilla":
+        log(
+            f"  AE: VanillaAutoencoder K={fc.n_factors} activation={act} "
+            f"epochs={fc.epochs} seed={fc.seed} on {Xz.shape[0]}x{Xz.shape[1]} commodity returns"
+        )
+    else:
+        log(
+            f"  AE: BetaVAE K={fc.n_factors} beta={fc.beta} activation={act} "
+            f"epochs={fc.epochs} seed={fc.seed} on {Xz.shape[0]}x{Xz.shape[1]} commodity returns"
+        )
+    return regenerate_factors(fc, model_type=model_type, activation=act)
+
+
+def regenerate_vanilla_factors(
+    factor_cfg: FactorModelConfig,
+    log: RunLogger,
+    activation: str | None = None,
+) -> pd.DataFrame:
+    """Backward-compatible wrapper for vanilla AE factor regeneration."""
+    return regenerate_factors_for_model(factor_cfg, "vanilla", log, activation=activation)
 
 
 def perdim_boot(
@@ -154,6 +178,76 @@ def perdim_boot(
         idx = stationary_bootstrap_idx(T, mean_block, rng)
         draws[b] = linear_cca_full(Fa[idx], Ma[idx], ridge)[0][:r]
     return draws
+
+
+def run_factor_model_comparison(
+    Fa_index: pd.DatetimeIndex,
+    Ma: pd.DataFrame,
+    cfg: MacroMappingConfig,
+    factor_cfg: FactorModelConfig,
+    seed: int,
+    log: RunLogger,
+) -> pd.DataFrame:
+    """Retrain vanilla AE and beta-VAE; compare OOS macro-spanning counts."""
+    rows: list[dict] = []
+    for i, model_type in enumerate(("vanilla", "beta_vae")):
+        log(f"factor model comparison: {model_type}")
+        fc = FactorModelConfig(
+            n_factors=factor_cfg.n_factors,
+            epochs=factor_cfg.epochs,
+            batch_size=factor_cfg.batch_size,
+            learning_rate=factor_cfg.learning_rate,
+            patience=factor_cfg.patience,
+            seed=factor_cfg.seed + i,
+            activation=factor_cfg.activation,
+            beta=factor_cfg.beta,
+        )
+        F_act = regenerate_factors_for_model(fc, model_type, log)  # type: ignore[arg-type]
+        F_act = F_act.reindex(Fa_index).dropna(how="any")
+        Fg, Mg = align_xy(F_act, Ma)
+        r = min(Fg.shape[1], Mg.shape[1])
+        ridge, _ = select_ridge_oos(
+            Fg,
+            Mg,
+            ridges=cfg.ridge_grid,
+            n_folds=cfg.n_folds,
+            embargo=cfg.embargo,
+        )
+        rho_oos = purged_cv_canon(Fg, Mg, n_folds=cfg.n_folds, embargo=cfg.embargo, ridge=ridge)
+        pd_null_oos = perdim_perm_null_oos(
+            Fg,
+            Mg,
+            cfg.n_perm_linear,
+            seed + 300 + i,
+            r,
+            cfg.n_folds,
+            cfg.embargo,
+            ridge,
+        )
+        perm_p = (1 + np.sum(pd_null_oos >= rho_oos[None, :], axis=0)) / (cfg.n_perm_linear + 1)
+        n_spanned = int(np.sum((rho_oos > 0.3) & (perm_p < 0.05)))
+        oos_agg = circular_perm_null_oos(
+            Fg,
+            Mg,
+            cfg.n_perm_linear,
+            seed + 400 + i,
+            cfg.n_folds,
+            cfg.embargo,
+            ridge,
+        )
+        rows.append(
+            {
+                "model": model_type,
+                "beta": fc.beta if model_type == "beta_vae" else np.nan,
+                "n_spanned": n_spanned,
+                "rho_oos_min": float(np.nanmin(rho_oos)),
+                "rho_oos_mean": float(np.nanmean(rho_oos)),
+                "perm_p_min": oos_agg["p_min"],
+                "perm_p_mean": oos_agg["p_mean"],
+                "ridge": ridge,
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def run_encoder_activation_experiment(
@@ -433,12 +527,14 @@ def run_macro_mapping(args: argparse.Namespace) -> None:
         patience=factor_cfg.patience,
         seed=args.seed,
         activation=factor_cfg.activation,
+        beta=factor_cfg.beta,
     )
 
     rng_seed = args.seed
+    model_type = _factor_model_type(args)
     out = Path(args.outdir)
-    res = out / "results" / "macro_mapping"
-    figs = out / "figures" / "macro_mapping"
+    res = out / "results" / RESULTS_SUBDIRS[model_type]
+    figs = out / "figures" / RESULTS_SUBDIRS[model_type]
     rep = out / "reports"
     for d in (res, figs, rep):
         d.mkdir(parents=True, exist_ok=True)
@@ -664,6 +760,12 @@ def run_macro_mapping(args: argparse.Namespace) -> None:
     encoder_exp = run_encoder_activation_experiment(Fa.index, Ma, cfg, factor_cfg, rng_seed, log)
     encoder_exp.to_csv(res / "encoder_activation_experiment.csv", index=False)
     log(f"encoder experiment: wrote {len(encoder_exp)} rows")
+
+    model_cmp = run_factor_model_comparison(Fa.index, Ma, cfg, factor_cfg, rng_seed, log)
+    cmp_path = out / "results" / "macro_mapping" / "factor_model_comparison.csv"
+    cmp_path.parent.mkdir(parents=True, exist_ok=True)
+    model_cmp.to_csv(cmp_path, index=False)
+    log(f"factor model comparison: wrote {len(model_cmp)} rows -> {cmp_path}")
 
     write_outputs(
         res,

@@ -35,7 +35,7 @@ from eqcp.config import (
     load_factor_model_config,
     load_forecast_pbsv_config,
 )
-from eqcp.factors.autoencoder import AETrainConfig, train_vanilla_autoencoder
+from eqcp.factors.extract import FORECAST_SUBDIRS, FactorModelType, train_factors
 from eqcp.forecasting.ar1 import (
     AR_KEY,
     MEAN_KEY,
@@ -84,26 +84,25 @@ def train_leakfree_factors(
     factor_cfg: FactorModelConfig,
     seed: int,
     log: RunLogger,
+    model_type: FactorModelType = "vanilla",
 ) -> pd.DataFrame:
-    """Train the vanilla AE on the train segment only; encode all days frozen."""
+    """Train the factor model on the train segment only; encode all days frozen."""
     mu = returns_raw[:t_split].mean(axis=0, keepdims=True)
     sd = returns_raw[:t_split].std(axis=0, ddof=0, keepdims=True)
     sd = np.where(sd == 0, 1.0, sd)
     xz = (returns_raw - mu) / sd
-    cfg = AETrainConfig(
-        n_factors=factor_cfg.n_factors,
-        epochs=factor_cfg.epochs,
-        batch_size=factor_cfg.batch_size,
-        learning_rate=factor_cfg.learning_rate,
-        patience=factor_cfg.patience,
-        seed=seed,
-        activation=factor_cfg.activation,
-    )
-    log(
-        f"  AE(leak-free): K={cfg.n_factors} activation={cfg.activation} seed={seed} "
-        f"trained on first {t_split} days, frozen encode of all {len(dates)}"
-    )
-    model, _ = train_vanilla_autoencoder(xz[:t_split], cfg)
+    if model_type == "vanilla":
+        log(
+            f"  AE(leak-free): vanilla K={factor_cfg.n_factors} activation={factor_cfg.activation} "
+            f"seed={seed} trained on first {t_split} days, frozen encode of all {len(dates)}"
+        )
+    else:
+        log(
+            f"  AE(leak-free): beta-VAE K={factor_cfg.n_factors} beta={factor_cfg.beta} "
+            f"activation={factor_cfg.activation} seed={seed} trained on first {t_split} days, "
+            f"frozen encode of all {len(dates)}"
+        )
+    model, _ = train_factors(xz[:t_split], factor_cfg, model_type=model_type, seed=seed)
     import torch
 
     model.eval()
@@ -112,7 +111,7 @@ def train_leakfree_factors(
     F = pd.DataFrame(
         factors.astype(np.float64),
         index=dates,
-        columns=[f"f{i + 1}" for i in range(cfg.n_factors)],
+        columns=[f"f{i + 1}" for i in range(factor_cfg.n_factors)],
     )
     F.index.name = "date"
     return F
@@ -263,10 +262,11 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
     cfg: ForecastPBSVConfig = load_forecast_pbsv_config(args.config)
     factor_cfg = load_factor_model_config(args.factor_config)
     seed = args.seed
+    model_type: FactorModelType = getattr(args, "factor_model", "vanilla")
 
     out = Path(args.outdir)
-    res = out / "results" / "forecast_pbsv"
-    figs = out / "figures" / "forecast_pbsv"
+    res = out / "results" / FORECAST_SUBDIRS[model_type]
+    figs = out / "figures" / FORECAST_SUBDIRS[model_type]
     rep = out / "reports"
     for d in (res, figs, rep):
         d.mkdir(parents=True, exist_ok=True)
@@ -298,7 +298,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
     M_full = load_macro_stationary(args.macro, manifest)
 
     # ------------------------------------------------- factors + frozen basis
-    F = train_leakfree_factors(returns, dates, t_split, factor_cfg, seed, log)
+    F = train_leakfree_factors(returns, dates, t_split, factor_cfg, seed, log, model_type)
     F_train = F.iloc[:t_split]
     M_train = M_full.loc[M_full.index < dates[t_split]]
     basis = fit_frozen_basis(
@@ -723,7 +723,9 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
             F_s = (
                 F
                 if sd_seed == seed
-                else train_leakfree_factors(returns, dates, t_split, factor_cfg, sd_seed, log)
+                else train_leakfree_factors(
+                    returns, dates, t_split, factor_cfg, sd_seed, log, model_type
+                )
             )
             basis_s = (
                 basis

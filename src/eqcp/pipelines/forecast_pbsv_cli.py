@@ -22,6 +22,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--config", type=Path, default=cfg_dir / "forecast_pbsv.yaml")
     p.add_argument("--factor-config", type=Path, default=cfg_dir / "factor_model.yaml")
+    p.add_argument(
+        "--factor-model",
+        choices=("vanilla", "beta_vae"),
+        default="vanilla",
+        help="Factor extraction backend (vanilla AE or beta-VAE)",
+    )
     return p.parse_args(argv)
 
 
