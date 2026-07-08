@@ -18,6 +18,7 @@ from eqcp.config import (
     load_factor_model_config,
     load_macro_mapping_config,
 )
+from eqcp.factors.extract import SECTOR_SUBDIRS, FactorModelType
 from eqcp.io.macro import load_macro_stationary
 from eqcp.reporting.sector_figures import make_sector_figures
 from eqcp.reporting.sector_report import write_sector_report
@@ -30,17 +31,23 @@ def run_sector_analysis(args: argparse.Namespace) -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     map_cfg = load_macro_mapping_config(args.mapping_config)
     factor_cfg = load_factor_model_config(args.factor_config)
+    model_type: FactorModelType = getattr(args, "factor_model", "vanilla")
 
     out = Path(args.outdir)
-    res = out / "results" / "sector_analysis"
-    figs = out / "figures" / "sector_analysis"
+    res = out / "results" / SECTOR_SUBDIRS[model_type]
+    figs = out / "figures" / SECTOR_SUBDIRS[model_type]
     rep = out / "reports"
     for d in (res, figs, rep):
         d.mkdir(parents=True, exist_ok=True)
 
     manifest = pd.read_csv(args.manifest)
     macro = load_macro_stationary(args.macro, manifest)
-    logger.info("sector analysis: macro %d series; seed=%d", macro.shape[1], args.seed)
+    logger.info(
+        "sector analysis (%s): macro %d series; seed=%d",
+        model_type,
+        macro.shape[1],
+        args.seed,
+    )
 
     results = run_sector_spanning(
         macro,
@@ -53,6 +60,7 @@ def run_sector_analysis(args: argparse.Namespace) -> None:
         n_perm=args.n_perm,
         seed=args.seed,
         include_overall=True,
+        model_type=model_type,
     )
     blocks = list(results.keys())
 
@@ -80,7 +88,7 @@ def run_sector_analysis(args: argparse.Namespace) -> None:
     pd.concat(bloc_rows, ignore_index=True).to_csv(res / "sector_bloc_loadings.csv", index=False)
 
     make_sector_figures(figs, summary, blocks)
-    write_sector_report(rep, results, seed=args.seed, n_perm=args.n_perm)
+    write_sector_report(rep, results, seed=args.seed, n_perm=args.n_perm, model_type=model_type)
 
     logger.info("sector analysis: wrote outputs under %s, %s, %s", res, figs, rep)
     for name, r in results.items():
@@ -104,6 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--n-factors", type=int, default=3, dest="n_factors")
     p.add_argument("--n-perm", type=int, default=500, dest="n_perm")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument(
+        "--factor-model",
+        choices=("vanilla", "beta_vae"),
+        default="vanilla",
+        help="Factor extraction backend (vanilla AE or beta-VAE)",
+    )
     return p
 
 

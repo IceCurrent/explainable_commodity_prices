@@ -13,13 +13,20 @@ def write_sector_report(
     *,
     seed: int,
     n_perm: int,
+    model_type: str = "vanilla",
 ) -> None:
-    """Write ``reports/sector_analysis_report.md``."""
+    """Write the sector spanning narrative report."""
+    model_label = "vanilla autoencoder" if model_type == "vanilla" else "β-VAE"
+    report_name = (
+        "sector_analysis_report.md"
+        if model_type == "vanilla"
+        else "sector_analysis_beta_report.md"
+    )
     L: list[str] = []
     L.append("# Sector-Wise Macro Spanning Report\n")
     L.append(
-        "Each sector's commodity return panel is compressed with the same vanilla "
-        "autoencoder and tested for macro spanning with purged-CV out-of-sample "
+        f"Each sector's commodity return panel is compressed with the same {model_label} "
+        "and tested for macro spanning with purged-CV out-of-sample "
         "canonical correlations vs a circular-shift permutation null "
         f"(n_perm={n_perm}, seed={seed}). A direction counts as macro-spanned when "
         "its OOS ρ>0.3 and OOS perm-p<0.05.\n"
@@ -72,4 +79,4 @@ def write_sector_report(
         "object), not individual coordinates.*\n"
     )
 
-    (rep / "sector_analysis_report.md").write_text("\n".join(L))
+    (rep / report_name).write_text("\n".join(L))

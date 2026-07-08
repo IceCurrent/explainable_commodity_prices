@@ -30,6 +30,11 @@ FORECAST_SUBDIRS: dict[FactorModelType, str] = {
     "beta_vae": "forecast_pbsv_beta",
 }
 
+SECTOR_SUBDIRS: dict[FactorModelType, str] = {
+    "vanilla": "sector_analysis",
+    "beta_vae": "sector_analysis_beta",
+}
+
 
 def train_factors(
     window_returns: np.ndarray,

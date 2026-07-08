@@ -5,7 +5,7 @@ commodity sector (energy / agriculture / metals) independently. The output tells
 the economics team *which macro directions span each sector* and how strongly,
 so the aggregate finding can be decomposed into sector-level stories.
 
-The design deliberately reuses the validated numerics (``train_vanilla_autoencoder``,
+The design deliberately reuses the validated numerics (``train_factors``,
 ``linear_cca_full``, ``purged_cv_canon``, ``perdim_perm_null_oos``, ``bloc_reduce``)
 so a sector result is directly comparable to the overall macro-mapping result.
 """
@@ -21,7 +21,7 @@ from eqcp.cca.inference import perdim_perm_null_oos, purged_cv_canon, select_rid
 from eqcp.cca.linear import align_xy, linear_cca_full
 from eqcp.cca.reduce import bloc_reduce
 from eqcp.config import FactorModelConfig
-from eqcp.factors.autoencoder import AETrainConfig, train_vanilla_autoencoder
+from eqcp.factors.extract import FactorModelType, train_factors
 from eqcp.io.commodities import SECTORS, load_return_panel
 
 # Sensible default bottleneck width for a single sector (5-9 series). Kept a
@@ -70,20 +70,23 @@ def extract_sector_factors(
     factor_cfg: FactorModelConfig,
     n_factors: int = DEFAULT_SECTOR_FACTORS,
     activation: str | None = None,
+    model_type: FactorModelType = "vanilla",
 ) -> SectorFactors:
-    """Train the vanilla AE on one sector's standardized returns (full sample)."""
+    """Train the factor model on one sector's standardized returns (full sample)."""
     panel = load_return_panel(commodities=members)
     k = _factor_count(len(members), n_factors)
-    cfg = AETrainConfig(
+    act = activation or factor_cfg.activation
+    fc = FactorModelConfig(
         n_factors=k,
         epochs=factor_cfg.epochs,
         batch_size=factor_cfg.batch_size,
         learning_rate=factor_cfg.learning_rate,
         patience=factor_cfg.patience,
         seed=factor_cfg.seed,
-        activation=activation or factor_cfg.activation,
+        activation=act,
+        beta=factor_cfg.beta,
     )
-    _, factors = train_vanilla_autoencoder(panel.standardized, cfg)
+    _, factors = train_factors(panel.standardized, fc, model_type=model_type, seed=fc.seed)
     prefix = sector[:3]
     F = pd.DataFrame(
         factors.astype(np.float64),
@@ -171,6 +174,7 @@ def run_sector_spanning(
     spanned_p_max: float = 0.05,
     seed: int = 0,
     include_overall: bool = True,
+    model_type: FactorModelType = "vanilla",
 ) -> dict[str, SectorSpanning]:
     """Extract factors and run the spanning probe for every sector (+ overall)."""
     sectors = sectors or SECTORS
@@ -178,16 +182,12 @@ def run_sector_spanning(
 
     if include_overall:
         overall = load_return_panel()
-        cfg = AETrainConfig(
-            n_factors=factor_cfg.n_factors,
-            epochs=factor_cfg.epochs,
-            batch_size=factor_cfg.batch_size,
-            learning_rate=factor_cfg.learning_rate,
-            patience=factor_cfg.patience,
+        _, fac = train_factors(
+            overall.standardized,
+            factor_cfg,
+            model_type=model_type,
             seed=factor_cfg.seed,
-            activation=factor_cfg.activation,
         )
-        _, fac = train_vanilla_autoencoder(overall.standardized, cfg)
         F_all = pd.DataFrame(
             fac.astype(np.float64),
             index=overall.dates,
@@ -210,7 +210,9 @@ def run_sector_spanning(
         )
 
     for sector, members in sectors.items():
-        sf = extract_sector_factors(sector, members, factor_cfg, n_factors=n_factors)
+        sf = extract_sector_factors(
+            sector, members, factor_cfg, n_factors=n_factors, model_type=model_type
+        )
         out[sector] = spanning_analysis(
             sector,
             sf.factors,
