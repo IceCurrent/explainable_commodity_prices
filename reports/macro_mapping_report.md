@@ -88,7 +88,7 @@ Mean canonical correlation peaks at **lag=0** (0 = contemporaneous; >0 = macro l
 
 ## Acceptance checks
 
-- [ ] linear_cca_full(ridge=0)==canonical_correlations (<1e-8) — max|diff|=6.21e-07
+- [x] linear_cca_full(ridge=0)==canonical_correlations (<1e-8) — max|diff|=4.44e-13
 - [x] aligned T >= 2690 — T=2691 (threshold 2690; gpr early-history gaps reduce aligned T vs naive 2900+)
 - [x] convenience vs preferred panel rho agree (<0.02) — max|diff|=0.0000 on 2691 shared dates
 - [x] per-regime slices sum to full sample — sum=2691 T=2691
@@ -98,4 +98,4 @@ Mean canonical correlation peaks at **lag=0** (0 = contemporaneous; >0 = macro l
 - [x] deterministic: identical CSVs across runs — all RNGs seeded from --seed; md5-stable across reruns (verified)
 
 
-*Factors source: `/Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_beta.csv`. Ridge CV-selected = 0.0 (OOS-mean grid {0.0: 0.2355, 0.001: 0.0814, 0.01: 0.0734, 0.1: 0.0562, 1.0: 0.0225}). Deterministic given --seed.*
+*Factors source: `data/processed/ae_factors_beta.csv`. Ridge CV-selected = 0.0 (OOS-mean grid {0.0: 0.2355, 0.001: 0.0814, 0.01: 0.0734, 0.1: 0.0562, 1.0: 0.0225}). Deterministic given --seed.*

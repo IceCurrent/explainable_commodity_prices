@@ -98,7 +98,7 @@ def make_forecast_figures(
     plt.close(fig)
 
     yr = by_year[by_year["year"] > 0]
-    phi_cols = [c for c in yr.columns if c.startswith("phi_cv")]
+    phi_cols = [c for c in yr.columns if c.startswith("phi_V")]
     fig, ax = plt.subplots(figsize=(7, 4))
     yx = np.arange(len(yr))
     bw = 0.8 / max(len(phi_cols), 1)

@@ -74,15 +74,15 @@ class FrozenBasis:
         ]
 
     def variates(self, factors: pd.DataFrame) -> pd.DataFrame:
-        """Factor-side canonical variates v_t = (f_t - mu_f) A for any dates."""
+        """Factor-side canonical variates V_t = (f_t - mu_f) A for any dates."""
         V = (factors[self.factor_cols].to_numpy(float) - self.mu_f) @ self.A
-        cols = [f"cv{k + 1}" for k in range(self.n_dims)]
+        cols = [f"V{k + 1}" for k in range(self.n_dims)]
         return pd.DataFrame(V, index=factors.index, columns=cols)
 
     def macro_variates(self, macro: pd.DataFrame) -> pd.DataFrame:
-        """Macro-side canonical variates u_t = (m_t - mu_m) B for any dates."""
+        """Macro-side canonical variates U_t = (m_t - mu_m) B for any dates."""
         U = (macro[self.macro_cols].to_numpy(float) - self.mu_m) @ self.B
-        cols = [f"cv{k + 1}" for k in range(self.n_dims)]
+        cols = [f"U{k + 1}" for k in range(self.n_dims)]
         return pd.DataFrame(U, index=macro.index, columns=cols)
 
     def top_loadings(self, k: int, n: int = 4) -> list[tuple[str, float]]:
@@ -225,7 +225,7 @@ def frozen_oos_diagnostics(
         cos = float(tr @ struct_oos / (np.linalg.norm(tr) * np.linalg.norm(struct_oos) + 1e-12))
         rows.append(
             {
-                "dim": f"cv{k + 1}",
+                "dim": f"V{k + 1}",
                 "rho_train": float(basis.rho_train[k]),
                 "rho_cv_train": float(basis.rho_cv_train[k]),
                 "perm_p_train": float(basis.perm_p_train[k]),

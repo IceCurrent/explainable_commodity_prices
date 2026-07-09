@@ -480,10 +480,10 @@ def write_outputs(
     )
     vec.to_csv(res / "canonical_vectors.csv")
 
-    pd.DataFrame(U, index=dates, columns=[f"cv{k + 1}" for k in range(r)]).to_csv(
+    pd.DataFrame(U, index=dates, columns=[f"U{k + 1}" for k in range(r)]).to_csv(
         res / "canonical_variates_macro.csv"
     )
-    pd.DataFrame(V, index=dates, columns=[f"cv{k + 1}" for k in range(r)]).to_csv(
+    pd.DataFrame(V, index=dates, columns=[f"V{k + 1}" for k in range(r)]).to_csv(
         res / "canonical_variates_factors.csv"
     )
 

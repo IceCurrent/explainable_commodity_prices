@@ -204,7 +204,7 @@ def write_forecast_report(
     )
     a("")
     a(
-        f"Spanned block = cv1..cv{basis.n_spanned} by the largest adjacent gap in the train "
+        f"Spanned block = V1..V{basis.n_spanned} by the largest adjacent gap in the train "
         f"purged-CV rho spectrum. `rho_oos_frozen` is the strictly-forward correlation of frozen "
         f"factor- and macro-side variates over the OOS segment — the honest number for composite "
         f"claims. Macro names are shown only where the OOS loading cosine >= "
@@ -290,7 +290,7 @@ def write_forecast_report(
     a("")
     a(
         f"phi recomputed with **{loco_max_name} excluded**: "
-        + ", ".join(f"cv{k + 1}={v:+.3e}" for k, v in enumerate(phi_loco))
+        + ", ".join(f"V{k + 1}={v:+.3e}" for k, v in enumerate(phi_loco))
         + ". Any placebo-band exceedance in the headline phi table that does not survive this "
         "exclusion is attributable to that single series, not to the factor direction."
     )

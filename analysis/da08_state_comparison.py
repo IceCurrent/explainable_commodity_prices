@@ -47,7 +47,7 @@ def main() -> None:
     ])
 
     arms = {
-        "ae_cv_state (pipeline)": ctx.state,
+        "ae_V_state (pipeline)": ctx.state,
         "pca5_state": pca_state,
         "sector_mean_state": sec_state,
     }

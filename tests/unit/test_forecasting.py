@@ -264,9 +264,10 @@ def test_frozen_oos_diagnostics_and_principal_angles():
     np.testing.assert_allclose(ang, 0.0, atol=1e-10)
 
 
-def test_cv_basis_pbsv_recovers_planted_persistent_direction():
+def test_v_basis_pbsv_recovers_planted_persistent_direction():
     """End-to-end identification check: the macro-observed persistent direction
-    earns the Shapley mass in the CV basis, regardless of factor mixing."""
+    earns the Shapley mass in the V (factor-side) canonical basis, regardless of
+    factor mixing."""
     F, M, latent = _factor_macro_panels(T=900, seed=1)
     rng = np.random.default_rng(2)
     T = len(F)
@@ -281,6 +282,6 @@ def test_cv_basis_pbsv_recovers_planted_persistent_direction():
     fr = expanding_subset_forecasts(returns, state, oos_start=t_split, min_train=50)
     res = pbsv(fr, groups=basis.groups)
     assert res["v_full"] > 0
-    # cv1 (the macro-anchored direction) carries the dominant share
+    # V1 (the macro-anchored direction) carries the dominant share
     assert res["phi"][0] > 0.7 * res["v_full"]
     assert basis.n_spanned >= 1

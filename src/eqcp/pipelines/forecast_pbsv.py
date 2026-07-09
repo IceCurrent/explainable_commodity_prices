@@ -224,7 +224,7 @@ def _substitution_rows(
         return s
 
     arms: list[tuple[str, tuple[int, ...]]] = [("none", ())]
-    arms += [(f"only_cv{k + 1}", (k,)) for k in range(K)]
+    arms += [(f"only_V{k + 1}", (k,)) for k in range(K)]
     arms += [("spanned_block", groups[0]), ("weak_block", groups[1]), ("all", full_key)]
 
     rows: list[dict] = []
@@ -323,8 +323,8 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
     )
     log(
         f"basis: rho_cv_train={np.round(basis.rho_cv_train, 3)} perm_p={basis.perm_p_train} "
-        f"-> spanned block = cv1..cv{basis.n_spanned} "
-        f"(weakly-macro-correlated: cv{basis.n_spanned + 1}..cv{K})"
+        f"-> spanned block = V1..V{basis.n_spanned} "
+        f"(weakly-macro-correlated: V{basis.n_spanned + 1}..V{K})"
     )
 
     V = basis.variates(F)  # (T, K) canonical-variate state on the returns calendar
@@ -436,7 +436,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         sh = pd.DataFrame(
             {
                 "horizon": h,
-                "dim": [f"cv{k + 1}" for k in range(K)],
+                "dim": [f"V{k + 1}" for k in range(K)],
                 "spanned": [k < basis.n_spanned for k in range(K)],
                 "phi_std": res_p["phi"],
                 "phi_pct_of_ar1_mse": 100.0 * res_p["phi"] / mse_ar_std,
@@ -571,7 +571,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
                 head_ctx = {
                     "plc_df": pd.DataFrame(
                         {
-                            "dim": [f"cv{k + 1}" for k in range(K)],
+                            "dim": [f"V{k + 1}" for k in range(K)],
                             "phi": res_head["phi"],
                             "placebo_lo": plc["phi_lo"],
                             "placebo_hi": plc["phi_hi"],
@@ -647,7 +647,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
     # ------------------------------------------------ robustness on headline h
     per_comm_phi = pbsv_per_commodity(fr_headline)
     pd.DataFrame(
-        per_comm_phi, index=commodities, columns=[f"cv{k + 1}" for k in range(K)]
+        per_comm_phi, index=commodities, columns=[f"V{k + 1}" for k in range(K)]
     ).to_csv(res / "pbsv_per_commodity.csv")
 
     target_years = np.asarray(pd.DatetimeIndex(dates[fr_headline.targets]).year)
@@ -656,19 +656,19 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         mask = target_years == yr
         phi_y = pbsv_on_mask(fr_headline, mask, weights=w0)
         year_rows.append({"year": int(yr), "n_days": int(np.sum(mask)), **{
-            f"phi_cv{k + 1}": float(phi_y[k]) for k in range(K)
+            f"phi_V{k + 1}": float(phi_y[k]) for k in range(K)
         }})
     burn_mask = np.arange(len(fr_headline.origins)) >= cfg.burn_in
     phi_burn = pbsv_on_mask(fr_headline, burn_mask, weights=w0)
     year_rows.append({"year": -1, "n_days": int(burn_mask.sum()), **{
-        f"phi_cv{k + 1}": float(phi_burn[k]) for k in range(K)
+        f"phi_V{k + 1}": float(phi_burn[k]) for k in range(K)
     }})
     pd.DataFrame(year_rows).to_csv(res / "pbsv_by_year.csv", index=False)
 
     res_raw_w = pbsv(fr_headline, weights=None, groups=groups)
     pd.DataFrame(
         {
-            "dim": [f"cv{k + 1}" for k in range(K)],
+            "dim": [f"V{k + 1}" for k in range(K)],
             "phi_std_weighted": pbsv(fr_headline, weights=w0)["phi"],
             "phi_raw_pooled": res_raw_w["phi"],
             f"phi_excl_{loco_max_name}": phi_loco,
@@ -685,7 +685,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
     res_ctrl = pbsv(fr_ctrl, weights=w0, groups=groups)
     pd.DataFrame(
         {
-            "dim": [f"cv{k + 1}" for k in range(K)],
+            "dim": [f"V{k + 1}" for k in range(K)],
             "phi_no_controls": pbsv(fr_headline, weights=w0)["phi"],
             "phi_vol_mom_controls": res_ctrl["phi"],
         }
@@ -854,7 +854,7 @@ def run_forecast_pbsv(args: argparse.Namespace) -> None:
         grouped=pd.DataFrame(grouped_rows),
         by_year=pd.DataFrame(year_rows),
         per_commodity=pd.DataFrame(
-            per_comm_phi, index=commodities, columns=[f"cv{k + 1}" for k in range(K)]
+            per_comm_phi, index=commodities, columns=[f"V{k + 1}" for k in range(K)]
         ),
         substitution=sub_df,
         transmission=transmission,

@@ -1,7 +1,4 @@
-factors: no export found; searched ['/Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_beta.csv']
-factors: regenerating from beta_vae (full-sample fit/encode)
-  AE: BetaVAE K=5 beta=4.0 activation=relu epochs=100 seed=0 on 2870x21 commodity returns
-factors: wrote regenerated factors -> /Users/shreyanshsharma/Desktop/Resume Projects/Summer Project/explainable_commodity_prices/data/processed/ae_factors_beta.csv  shape=(2870, 5)
+factors: loaded explicit --factors data/processed/ae_factors_beta.csv  shape=(2870, 5)
 macro: 37 series from data/processed/macro_stationary.csv
 aligned: T=2691  K=5  J=37  (2013-11-01 -> 2026-06-01)
 preferred-path: max|rho_conv - rho_pref|=0.0000

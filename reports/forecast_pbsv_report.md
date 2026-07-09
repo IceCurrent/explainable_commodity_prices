@@ -36,23 +36,23 @@ The central question — *do macros move commodities?* — is answered as a func
 
 | dim | rho_cv_train | perm_p_train | rho_oos_frozen | loading_cosine_oos | spanned | macro_identity |
 |---|---|---|---|---|---|---|
-| cv1 | +0.6907 | +0.004975 | +0.5867 | +0.9348 | True | xle(+0.82); inflsw_5y(+0.68); be_5y(+0.67); fx_usdcad(-0.67) |
-| cv2 | +0.4377 | +0.004975 | +0.517 | +0.953 | False | (train-era name not licensed OOS) |
-| cv3 | +0.2719 | +0.004975 | +0.1323 | +0.7964 | False | (train-era name not licensed OOS) |
-| cv4 | +0.1392 | +0.004975 | +0.09 | +0.1083 | False | (train-era name not licensed OOS) |
-| cv5 | -0.001384 | +0.5174 | +0.008514 | +0.4717 | False | (train-era name not licensed OOS) |
+| V1 | +0.6907 | +0.004975 | +0.5867 | +0.9348 | True | xle(+0.82); inflsw_5y(+0.68); be_5y(+0.67); fx_usdcad(-0.67) |
+| V2 | +0.4377 | +0.004975 | +0.517 | +0.953 | False | (train-era name not licensed OOS) |
+| V3 | +0.2719 | +0.004975 | +0.1323 | +0.7964 | False | (train-era name not licensed OOS) |
+| V4 | +0.1392 | +0.004975 | +0.09 | +0.1083 | False | (train-era name not licensed OOS) |
+| V5 | -0.001384 | +0.5174 | +0.008514 | +0.4717 | False | (train-era name not licensed OOS) |
 
-Spanned block = cv1..cv1 by the largest adjacent gap in the train purged-CV rho spectrum. `rho_oos_frozen` is the strictly-forward correlation of frozen factor- and macro-side variates over the OOS segment — the honest number for composite claims. Macro names are shown only where the OOS loading cosine >= 0.8 (loading drift check); the trailing block is 'weakly macro-correlated', not 'orphaned' — all dims can reject the permutation null while having small rho. Shared-variance: rho^2 of the spanned dims is 34% — even 'spanned' directions are majority non-macro variance.
+Spanned block = V1..V1 by the largest adjacent gap in the train purged-CV rho spectrum. `rho_oos_frozen` is the strictly-forward correlation of frozen factor- and macro-side variates over the OOS segment — the honest number for composite claims. Macro names are shown only where the OOS loading cosine >= 0.8 (loading drift check); the trailing block is 'weakly macro-correlated', not 'orphaned' — all dims can reject the permutation null while having small rho. Shared-variance: rho^2 of the spanned dims is 34% — even 'spanned' directions are majority non-macro variance.
 
 ## PBSV (h=1, exact 2^K Shapley, standardized pooling)
 
 | dim | spanned | phi_std | boot_lo | boot_hi | placebo_lo | placebo_hi | placebo_p_right | outside_band |
 |---|---|---|---|---|---|---|---|---|
-| cv1 | True | -2.038e-07 | -7.203e-07 | +2.543e-07 | -3.947e-07 | +8.981e-08 | +0.7525 | False |
-| cv2 | False | -4.789e-07 | -8.125e-07 | -2.172e-07 | -3.828e-07 | +1.065e-07 | +1 | True |
-| cv3 | False | -1.695e-07 | -8.614e-07 | +5.356e-07 | -3.219e-07 | +8.183e-08 | +0.6238 | False |
-| cv4 | False | +2.056e-07 | -4.836e-07 | +1.013e-06 | -3.429e-07 | +1.006e-07 | +0.009901 | True |
-| cv5 | False | -5.977e-07 | -1.43e-06 | -4.856e-08 | -3.778e-07 | +1.426e-07 | +1 | True |
+| V1 | True | -2.038e-07 | -7.203e-07 | +2.543e-07 | -3.947e-07 | +8.981e-08 | +0.7525 | False |
+| V2 | False | -4.789e-07 | -8.125e-07 | -2.172e-07 | -3.828e-07 | +1.065e-07 | +1 | True |
+| V3 | False | -1.695e-07 | -8.614e-07 | +5.356e-07 | -3.219e-07 | +8.183e-08 | +0.6238 | False |
+| V4 | False | +2.056e-07 | -4.836e-07 | +1.013e-06 | -3.429e-07 | +1.006e-07 | +0.009901 | True |
+| V5 | False | -5.977e-07 | -1.43e-06 | -4.856e-08 | -3.778e-07 | +1.426e-07 | +1 | True |
 
 Bootstrap CIs are descriptive and conditional on the frozen basis and realized parameter path; significance belongs to the Clark–West tests. phi inside the placebo band is indistinguishable from pure estimation cost at matched subset cardinality and must not be interpreted. phi for the trailing (near-tied rho) dims is individually non-identified — only the block sum is meaningful.
 
@@ -86,23 +86,23 @@ Bootstrap CIs are descriptive and conditional on the frozen basis and realized p
 
 Pooled significance that dies when one series is dropped is a data artifact, not a cross-sectional phenomenon — the usual culprit is residual staleness (forward-filled assessment series make next-day returns partly deterministic). Series-level staleness stats are in `forecast_accuracy.csv`.
 
-phi recomputed with **Aluminium excluded**: cv1=-2.067e-07, cv2=-4.446e-07, cv3=-2.353e-07, cv4=+1.861e-07, cv5=-5.868e-07. Any placebo-band exceedance in the headline phi table that does not survive this exclusion is attributable to that single series, not to the factor direction.
+phi recomputed with **Aluminium excluded**: V1=-2.067e-07, V2=-4.446e-07, V3=-2.353e-07, V4=+1.861e-07, V5=-5.868e-07. Any placebo-band exceedance in the headline phi table that does not survive this exclusion is attributable to that single series, not to the factor direction.
 
 ### Vol/momentum controls (both models)
 
 | dim | phi_no_controls | phi_vol_mom_controls |
 |---|---|---|
-| cv1 | -2.038e-07 | -2.052e-07 |
-| cv2 | -4.789e-07 | -5.042e-07 |
-| cv3 | -1.695e-07 | -1.627e-07 |
-| cv4 | +2.056e-07 | +2.112e-07 |
-| cv5 | -5.977e-07 | -6.177e-07 |
+| V1 | -2.038e-07 | -2.052e-07 |
+| V2 | -4.789e-07 | -5.042e-07 |
+| V3 | -1.695e-07 | -1.627e-07 |
+| V4 | +2.056e-07 | +2.112e-07 |
+| V5 | -5.977e-07 | -6.177e-07 |
 
 If spanned-block phi survives only without vol controls, the 'macro' signal is a volatility-timing effect wearing a macro label (ReLU latents are partly vol proxies).
 
 ### Weighting and sub-period stability
 
-| year | n_days | phi_cv1 | phi_cv2 | phi_cv3 | phi_cv4 | phi_cv5 |
+| year | n_days | phi_V1 | phi_V2 | phi_V3 | phi_V4 | phi_V5 |
 |---|---|---|---|---|---|---|
 | 2021 | 155 | -2.634e-07 | -3.668e-07 | +4.972e-07 | -4.05e-08 | -5.086e-07 |
 | 2022 | 222 | -1.614e-06 | -1.226e-06 | -5.803e-07 | +9.174e-07 | -7.369e-07 |
@@ -119,11 +119,11 @@ If spanned-block phi survives only without vol controls, the 'macro' signal is a
 | arm | substituted_dims | v_full_std | retained_share_vs_none | cw_p | n_origins |
 |---|---|---|---|---|---|
 | none | - | -1.416e-06 | +1 | +0.352 | 1081 |
-| only_cv1 | 1 | -1.264e-06 | +0.893 | +0.1599 | 1081 |
-| only_cv2 | 2 | -2.633e-07 | +0.186 | +0.007189 | 1081 |
-| only_cv3 | 3 | -1.76e-06 | +1.243 | +0.4336 | 1081 |
-| only_cv4 | 4 | -1.915e-06 | +1.353 | +0.755 | 1081 |
-| only_cv5 | 5 | -8.085e-07 | +0.5711 | +0.07352 | 1081 |
+| only_V1 | 1 | -1.264e-06 | +0.893 | +0.1599 | 1081 |
+| only_V2 | 2 | -2.633e-07 | +0.186 | +0.007189 | 1081 |
+| only_V3 | 3 | -1.76e-06 | +1.243 | +0.4336 | 1081 |
+| only_V4 | 4 | -1.915e-06 | +1.353 | +0.755 | 1081 |
+| only_V5 | 5 | -8.085e-07 | +0.5711 | +0.07352 | 1081 |
 | spanned_block | 1 | -1.264e-06 | +0.893 | +0.1599 | 1081 |
 | weak_block | 2.3.4.5 | -5.93e-07 | +0.4189 | +0.007865 | 1081 |
 | all | 1.2.3.4.5 | -6.902e-07 | +0.4875 | +0.007697 | 1081 |

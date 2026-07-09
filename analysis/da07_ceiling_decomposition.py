@@ -69,7 +69,7 @@ def main() -> None:
         v = pd.Series(V[:, k])
         u = pd.Series(M_u[:, k])
         rows.append({
-            "dim": f"cv{k + 1}", "rho_cv_train": rho_tr[k],
+            "dim": f"dim{k + 1}", "rho_cv_train": rho_tr[k],
             "ac1_v": v.autocorr(1), "ac5_v": v.autocorr(5), "ac21_v": v.autocorr(21),
             "ac1_u": u.autocorr(1), "ac5_u": u.autocorr(5), "ac21_u": u.autocorr(21),
         })

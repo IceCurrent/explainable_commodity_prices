@@ -85,3 +85,7 @@ results/deep_analysis/cache/
 data/macro/
 
 *prompt.md
+
+# PowerPoint decks (generated presentation assets, not project code)
+*.pptx
+*.ppt
