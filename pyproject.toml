@@ -33,10 +33,8 @@ dev = [
 
 [project.scripts]
 eqcp-macro-panel = "eqcp.macro_processing.cli:main"
-eqcp-mapping = "eqcp.pipelines.macro_mapping_cli:main"
-eqcp-synthetic = "eqcp.synthetic.cli:main"
-eqcp-forecast = "eqcp.pipelines.forecast_pbsv_cli:main"
-eqcp-sectors = "eqcp.pipelines.sector_analysis:main"
+eqcp-rolling = "eqcp.pipelines.rolling_forecast_cli:main"
+eqcp-rolling-sectors = "eqcp.pipelines.rolling_sectors:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,0 +1,5 @@
+block,n_commodities,n_factors,n_windows,n_stable_ranks,n_ranks_above_null,lead_rank_class,lead_median_abs_cos,lead_median_rho_oos,best_forecast_cw_p,any_forecast_beats_ar1
+overall,21,5,125,1,5,stable,0.819760251953707,0.5343880753415177,0.4037638264518949,False
+agriculture,9,3,125,0,3,weak,0.38136338714090606,0.17788578207015882,0.38109601917781644,False
+energy,5,3,125,1,3,stable,0.777705561348135,0.44053647155263825,0.13008598881006406,False
+metals,7,3,125,1,3,stable,0.844618516050613,0.4405017651220197,0.10866774724473793,False

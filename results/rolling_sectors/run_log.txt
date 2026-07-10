@@ -1,0 +1,9 @@
+rolling sectors (vanilla): macro 37 series; seed=0
+[overall] 21 commodities -> K=5; rolling 252d/21d step 21
+[overall] 125 windows; ladder=V1=stable, V2=partial, V3=weak, V4=weak, V5=weak; lead V1 med|cos|=0.82 rho_oos=0.53
+[agriculture] 9 commodities -> K=3; rolling 252d/21d step 21
+[agriculture] 125 windows; ladder=V1=weak, V2=weak, V3=weak; lead V1 med|cos|=0.38 rho_oos=0.18
+[energy] 5 commodities -> K=3; rolling 252d/21d step 21
+[energy] 125 windows; ladder=V1=stable, V2=weak, V3=weak; lead V1 med|cos|=0.78 rho_oos=0.44
+[metals] 7 commodities -> K=3; rolling 252d/21d step 21
+[metals] 125 windows; ladder=V1=stable, V2=weak, V3=weak; lead V1 med|cos|=0.84 rho_oos=0.44

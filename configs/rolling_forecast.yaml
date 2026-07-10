@@ -1,0 +1,20 @@
+# Rolling-window walk-forward forecast + rolling-explainability experiment.
+# Everything re-fits per window: AE retrain -> CCA basis refit -> forecast the
+# next test_block days -> advance by step. Non-overlapping test blocks by default
+# (step == test_block) so every OOS day is scored exactly once.
+train_window: 252   # ~1 trading year of training per window
+test_block: 21      # forecast the next ~month, then roll
+step: 21            # advance one test block (non-overlapping OOS)
+horizons: [1, 5, 21, 63]
+min_train_pairs: 40 # minimum realized (regressor, target) pairs to fit a window
+ae_epochs: 60       # per-window AE budget (short windows; early stopping usually bites)
+ridge_grid: [0.0, 0.001, 0.01, 0.1, 1.0]
+n_folds: 4
+embargo: 10
+spanned_rho_min: 0.3
+n_boot: 1000
+mean_block: 21
+stability_seeds: [0, 1, 2]
+lagged_macro_series: [gpr, epu]  # publication lag realism (gpr/epu shifted 1 day)
+fingerprint_cos_stable: 0.7      # rank "macro-stable" if median cross-window |cos| clears this
+n_perm_stability: 200            # label-shuffle permutations for the stability null band

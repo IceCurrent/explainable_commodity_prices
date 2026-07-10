@@ -1,4 +1,5 @@
-.PHONY: install lint typecheck test macro-panel mapping mapping-beta synthetic forecast forecast-beta sectors sectors-beta all slow
+.PHONY: install lint typecheck test macro-panel rolling rolling-beta \
+        rolling-sectors rolling-sectors-beta all slow
 
 PYTHON ?= python3
 PIP ?= pip
@@ -24,59 +25,23 @@ macro-panel:
 		--input data/macro/NEW_MACRO_COMMODITY_PANEL.xlsx \
 		--outdir .
 
-mapping:
-	$(PYTHON) scripts/run_macro_mapping.py \
-		--factors data/processed/ae_factors_vanilla.csv \
-		--macro data/processed/macro_stationary.csv \
-		--levels data/processed/macro_levels_aligned.csv \
-		--regimes data/processed/regimes.csv \
-		--outdir . \
-		--seed 0 \
-		--factor-model vanilla
+# ---------------------------------------------------------------- rolling engine
+# Everything re-fits per window: AE retrain -> CCA basis refit -> forecast the
+# next test block -> advance. Nothing is trained on the full sample.
 
-mapping-beta:
-	$(PYTHON) scripts/run_macro_mapping.py \
-		--factors data/processed/ae_factors_beta.csv \
-		--macro data/processed/macro_stationary.csv \
-		--levels data/processed/macro_levels_aligned.csv \
-		--regimes data/processed/regimes.csv \
-		--outdir . \
-		--seed 0 \
-		--factor-model beta_vae
+rolling:            # overall 21-commodity panel (vanilla AE)
+	$(PYTHON) -m eqcp.pipelines.rolling_forecast_cli --seed 0 --factor-model vanilla
 
-synthetic:
-	$(PYTHON) scripts/run_synthetic_recovery.py
+rolling-beta:       # overall panel (beta-VAE robustness arm)
+	$(PYTHON) -m eqcp.pipelines.rolling_forecast_cli --seed 0 --factor-model beta_vae
 
-forecast:
-	$(PYTHON) -m eqcp.pipelines.forecast_pbsv_cli \
-		--macro data/processed/macro_stationary.csv \
-		--manifest data/processed/transform_manifest.csv \
-		--outdir . \
-		--seed 0 \
-		--factor-model vanilla
+rolling-sectors:    # per-sector decomposition (energy / agriculture / metals) + overall
+	$(PYTHON) -m eqcp.pipelines.rolling_sectors --seed 0 --factor-model vanilla
 
-forecast-beta:
-	$(PYTHON) -m eqcp.pipelines.forecast_pbsv_cli \
-		--macro data/processed/macro_stationary.csv \
-		--manifest data/processed/transform_manifest.csv \
-		--outdir . \
-		--seed 0 \
-		--factor-model beta_vae
+rolling-sectors-beta:
+	$(PYTHON) -m eqcp.pipelines.rolling_sectors --seed 0 --factor-model beta_vae
 
-sectors:
-	$(PYTHON) -m eqcp.pipelines.sector_analysis \
-		--macro data/processed/macro_stationary.csv \
-		--manifest data/processed/transform_manifest.csv \
-		--outdir . \
-		--seed 0 \
-		--factor-model vanilla
-
-sectors-beta:
-	$(PYTHON) -m eqcp.pipelines.sector_analysis \
-		--macro data/processed/macro_stationary.csv \
-		--manifest data/processed/transform_manifest.csv \
-		--outdir . \
-		--seed 0 \
-		--factor-model beta_vae
+# Regenerate every rolling artifact the notebook reads (a few minutes total).
+rolling-all: rolling rolling-beta rolling-sectors rolling-sectors-beta
 
 all: install lint typecheck test

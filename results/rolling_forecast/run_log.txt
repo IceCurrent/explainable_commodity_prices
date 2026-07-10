@@ -1,0 +1,17 @@
+calendar: T=2870 N=21 (2013-10-21 -> 2026-06-01); rolling 252d train / 21d test, step 21; model=vanilla seed=0
+  window 0 train 2013-10-21->2014-11-20 test 2014-11-21->2014-12-22 rho=[0.7  0.61 0.51 0.49 0.42] spanned=V1..V5
+  window 20 train 2015-08-13->2016-09-22 test 2016-09-23->2016-10-28 rho=[0.79 0.6  0.5  0.43 0.33] spanned=V1..V1
+  window 40 train 2017-06-21->2018-07-20 test 2018-07-23->2018-08-20 rho=[0.74 0.57 0.45 0.4  0.33] spanned=V1..V1
+  window 60 train 2019-04-12->2020-05-27 test 2020-05-28->2020-06-29 rho=[0.39 0.27 0.09 0.06 0.04] spanned=V1..V2
+  window 80 train 2021-03-01->2022-04-11 test 2022-04-12->2022-05-17 rho=[0.73 0.55 0.52 0.46 0.35] spanned=V1..V1
+  window 100 train 2023-01-04->2024-02-20 test 2024-02-21->2024-03-20 rho=[0.7  0.63 0.52 0.36 0.35] spanned=V1..V3
+  window 120 train 2024-11-13->2025-12-18 test 2025-12-19->2026-01-23 rho=[0.78 0.63 0.47 0.37 0.32] spanned=V1..V1
+rolling roll complete: 125/125 windows usable; K=5; horizons=[1, 5, 21, 63]
+rank stability (cross-window macro cosine vs shuffle null; chance |cos|~0.13): V1 med|cos|=0.82 (null p95=0.12, p=0.005, rho_oos=0.53) [stable]; V2 med|cos|=0.60 (null p95=0.12, p=0.005, rho_oos=0.32) [partial]; V3 med|cos|=0.28 (null p95=0.12, p=0.005, rho_oos=0.20) [weak]; V4 med|cos|=0.21 (null p95=0.12, p=0.005, rho_oos=0.18) [weak]; V5 med|cos|=0.19 (null p95=0.12, p=0.005, rho_oos=0.17) [weak]
+  -> 1/5 ranks macro-stable (bar=0.7); 5/5 clear the shuffle null (p<0.05)
+pooled grouping boundary (median spanned across windows) = V1..V1 | V2..V5
+h=1: r2_vs_ar1=-0.02653 CW p=0.4038 (nonoverlap 0.4087); v_full=-8.838e-06
+h=5: r2_vs_ar1=-0.02606 CW p=0.5291 (nonoverlap 0.4791); v_full=-4.369e-05
+h=21: r2_vs_ar1=-0.02452 CW p=0.8243 (nonoverlap 0.7625); v_full=-1.817e-04
+h=63: r2_vs_ar1=-0.02351 CW p=0.9429 (nonoverlap 0.2555); v_full=-1.010e-03
+VERDICT: forecast gate (h=1) passed=False; explainability-survives-rolling=True (1/5 ranks macro-stable)

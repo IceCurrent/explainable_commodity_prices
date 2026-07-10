@@ -39,67 +39,41 @@ class MacroProcessingConfig:
 
 
 @dataclass
-class MacroMappingConfig:
-    ridge_grid: tuple[float, ...] = (0.0, 1e-3, 1e-2, 1e-1, 1.0)
-    n_perm_linear: int = 1000
-    n_perm_kcca: int = 200
-    n_perm_regime: int = 500
-    n_boot: int = 1000
-    mean_block: int = 21
-    n_folds: int = 5
-    embargo: int = 10
-    kcca_reg: float = 1.0
-    kcca_reg_grid: tuple[float, ...] = (0.1, 0.3, 1.0, 3.0, 10.0)
-    kcca_gamma_scale: tuple[float, ...] = (0.5, 1.0, 2.0)
-    kcca_stability_iqr_threshold: float = 0.15
-    nystrom_landmarks: int = 400
-    lags: list[int] = field(default_factory=lambda: list(range(-5, 6)))
-    boot_blocks: tuple[int, ...] = (10, 21, 42)
-    china_seam: str = "2016-08-02"
-    aligned_t_min: int = 2690
-    bloc_map: dict[str, list[str]] = field(default_factory=dict)
-    encoder_activations: tuple[str, ...] = ("relu", "tanh", "linear")
+class RollingForecastConfig:
+    """Walk-forward rolling-window forecast + rolling-explainability experiment.
 
+    Everything re-fits on each window: the AE is retrained on ``train_window``
+    days, the CCA attribution basis is refit, then the factor-augmented AR
+    forecasts the next ``test_block`` days before the window advances by
+    ``step``. The scientific target is whether the factor<->macro canonical
+    structure survives this rolling (ranks stay macro-anchored even as the AE
+    latent coordinates rotate window to window).
+    """
 
-@dataclass
-class ForecastPBSVConfig:
-    train_frac: float = 0.6
+    train_window: int = 252
+    test_block: int = 21
+    step: int = 21
     horizons: tuple[int, ...] = (1, 5, 21, 63)
-    attribution_horizons: tuple[int, ...] = (1, 5, 21, 63)
-    headline_horizon: int = 1
-    min_train: int = 60
+    min_train_pairs: int = 40
+    ae_epochs: int = 60  # per-window AE budget (windows are short; keeps the roll fast)
     ridge_grid: tuple[float, ...] = (0.0, 1e-3, 1e-2, 1e-1, 1.0)
-    n_folds: int = 5
+    n_folds: int = 4
     embargo: int = 10
-    n_perm_basis: int = 200
-    n_placebo: int = 100
-    placebo_min_shift: int = 63
-    n_boot: int = 1000
-    n_boot_basis: int = 200
-    mean_block: int = 21
-    burn_in: int = 63
     spanned_rho_min: float = 0.3
-    spanned_p_max: float = 0.05
-    stale_zero_frac_max: float = 0.15
-    ewma_lambda: float = 0.94
-    momentum_lookback: int = 252
-    utility_gamma: float = 3.0
+    n_boot: int = 1000
+    mean_block: int = 21
     stability_seeds: tuple[int, ...] = (0, 1, 2)
     lagged_macro_series: tuple[str, ...] = ("gpr", "epu")
+    fingerprint_cos_stable: float = 0.7  # rank is "macro-stable" above this median cosine
+    n_perm_stability: int = 200  # label-shuffle permutations for the stability null
 
 
-def load_forecast_pbsv_config(path: Path | None = None) -> ForecastPBSVConfig:
-    data = _load_yaml(path or CONFIG_DIR / "forecast_pbsv.yaml")
-    for key in (
-        "horizons",
-        "attribution_horizons",
-        "ridge_grid",
-        "stability_seeds",
-        "lagged_macro_series",
-    ):
+def load_rolling_forecast_config(path: Path | None = None) -> RollingForecastConfig:
+    data = _load_yaml(path or CONFIG_DIR / "rolling_forecast.yaml")
+    for key in ("horizons", "ridge_grid", "stability_seeds", "lagged_macro_series"):
         if key in data:
             data[key] = tuple(data[key])
-    return ForecastPBSVConfig(**data)
+    return RollingForecastConfig(**data)
 
 
 def load_factor_model_config(path: Path | None = None) -> FactorModelConfig:
@@ -111,19 +85,3 @@ def load_macro_processing_config(path: Path | None = None) -> MacroProcessingCon
     data = _load_yaml(path or CONFIG_DIR / "macro_processing.yaml")
     window = tuple(data.pop("window"))
     return MacroProcessingConfig(window=window, **data)
-
-
-def load_macro_mapping_config(path: Path | None = None) -> MacroMappingConfig:
-    data = _load_yaml(path or CONFIG_DIR / "macro_mapping.yaml")
-    for key in (
-        "ridge_grid",
-        "kcca_reg_grid",
-        "kcca_gamma_scale",
-        "boot_blocks",
-        "encoder_activations",
-    ):
-        if key in data:
-            data[key] = tuple(data[key])
-    if "lags" in data:
-        data["lags"] = list(data["lags"])
-    return MacroMappingConfig(**data)
