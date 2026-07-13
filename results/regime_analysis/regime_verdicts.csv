@@ -1,0 +1,10 @@
+regime,name,n_win,V1_coherence,V1_top3,V1dir_cos_vs_pooled,verdict
+R1,Late-QE calm,2,0.78,"ovx(+0.69), xle(-0.42), gvz(+0.30)",0.72,INCONCLUSIVE
+R2,Oil crash / strong-USD bear,18,0.94,"xle(+0.68), ovx(-0.68), fx_usdcad(-0.66)",0.95,CONSISTENT (strong)
+R3,Reflation recovery,29,0.91,"xle(+0.72), ovx(-0.63), fx_usdcad(-0.51)",0.95,CONSISTENT
+R4,Trade war / late cycle,15,0.94,"xle(+0.74), ovx(-0.70), inflsw_5y(+0.61)",0.96,CONSISTENT
+R5,COVID shock & rebound,9,0.92,"mxwo(+0.74), fx_usdnok(-0.70), xle(+0.69)",0.97,CONSISTENT (strong)
+R6,Reflation & Ukraine supercycle,16,0.87,"xle(+0.68), be_5y(+0.56), inflsw_5y(+0.55)",0.89,CONSISTENT (strong)
+R7,Fed hiking / disinflation,14,0.92,"fx_bbdxy(+0.66), fx_audusd(-0.65), xle(-0.64)",0.88,CONSISTENT
+R8,Plateau & easing pivot,13,0.93,"fx_audusd(+0.65), fx_usdzar(-0.62), fx_usdclp(-0.60)",0.84,CONSISTENT
+R9,Recent / study-window events,9,0.9,"xle(+0.57), hscei(+0.56), mxef(+0.56)",0.9,PARTIAL
